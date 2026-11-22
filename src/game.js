@@ -165,8 +165,8 @@
     hud();
     scene.walk(path, (tid) => {
       const prev = st; st = W.step(level, st, tid); A.play('step'); A.haptic('step');
-      if (st.tile !== tid) { scene.teleport(st.tile); seams(); A.play('unlock'); A.haptic('tap'); if (coachStep === 'warp') coachDone(); }
-      if (st.tw !== prev.tw) { scene.setState(st, true); seams(); }
+      if (st.tile !== tid) { scene.teleport(st.tile); seams(); A.play('warp'); A.haptic('tap'); if (coachStep === 'warp') coachDone(); }
+      if (st.tw !== prev.tw) { scene.setState(st, true); seams(); A.play('twin'); }
       if (Object.keys(st.gone).length !== Object.keys(prev.gone || {}).length) { scene.setState(st, true); seams(); A.play('side'); if (coachStep === 'crumble') coachDone(); }
       if (Object.keys(st.sw).length !== Object.keys(prev.sw).length) {
         const on = Object.keys(st.sw).length > Object.keys(prev.sw).length; scene.setState(st, true); seams(); A.play(on ? 'unlock' : 'side'); say(on ? 'toast.gate' : 'toast.gateoff', null, 1800);
@@ -301,7 +301,7 @@
     const e = $('transition'); if (!e) return; if (!booted) { booted = true; return; }
     const ch = (W.CHAPTERS || []).find((x) => x.n === (level.ch || 1));
     $('tr-num').textContent = daily ? '·' : li + 1; $('tr-chapter').textContent = daily ? t('daily.t') : t('ch.n', { n: level.ch || 1 }) + (ch ? ' · ' + V.i18n.pick(ch.name) : '');
-    e.classList.add('is-on'); clearTimeout(transT); transT = setTimeout(() => e.classList.remove('is-on'), RM ? 160 : 520);
+    e.classList.add('is-on'); A.play('trans'); clearTimeout(transT); transT = setTimeout(() => e.classList.remove('is-on'), RM ? 160 : 520);
   }
   // ---------- menu backdrop: level 1 turns slowly behind the menu ----------
   let bgOn = false, bgCam = 0;

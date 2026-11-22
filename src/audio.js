@@ -154,6 +154,19 @@
         voice(f, t + i * 0.035, { dur: 1.3, vol: 0.12, ratio: 3, pv: 0.3, send: 0.9, attack: 0.012 }));
       voice(1479.98, t + 0.12, { dur: 1.1, vol: 0.04, ratio: 2.76, pv: 0.3, send: 1.1, attack: 0.02 });
     },
+    warp(t) {                    // portal: a bright upward sweep, then two glassy tones a fifth apart
+      noiseBurst(t, 0.4, 700, 0.05, 'bandpass', null, 3800);
+      voice(1318.51, t + 0.1, { dur: 0.9, vol: 0.1, ratio: 2.76, pv: 0.4, send: 0.9, attack: 0.006 });
+      voice(1975.53, t + 0.2, { dur: 1.1, vol: 0.08, ratio: 2.76, pv: 0.4, send: 1.0, attack: 0.006 });
+    },
+    twin(t) {                    // the twin answers a moment later, softer and lower
+      const i = Math.max(0, (lastStepIdx < 0 ? 4 : lastStepIdx) - 3);
+      voice(PENTA[i] * 0.5, t + 0.11, { dur: 0.6, vol: 0.06, ratio: 4.02, pv: 0.3, send: 0.7 });
+    },
+    trans(t) {                   // level card: a soft downward breath
+      noiseBurst(t, 0.5, 1800, 0.035, 'bandpass', null, 420);
+      voice(196, t + 0.05, { dur: 0.9, vol: 0.05, type: 'triangle', ratio: 2, pv: 0.15, send: 0.8, attack: 0.05 });
+    },
     hint(t) {
       voice(440, t, { dur: 0.6, vol: 0.1, type: 'triangle', ratio: 2, pv: 0.15, send: 0.5, attack: 0.012 });
       voice(659.25, t + 0.22, { dur: 0.9, vol: 0.09, type: 'triangle', ratio: 2, pv: 0.15, send: 0.7, attack: 0.012 });
