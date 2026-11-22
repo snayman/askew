@@ -131,21 +131,19 @@
     </div>
     <div class="win" id="win" hidden>
       <div class="win-card" role="dialog" aria-labelledby="win-t">
-        <i class="rule"></i>
+        <div class="stars" id="win-stars"></div>
         <h2 id="win-t" data-i18n="win.title"></h2>
         <p class="win-lv" id="win-lv"></p>
-        <div class="stars" id="win-stars"></div>
         <dl class="win-stats">
-          <div><dt data-i18n="win.moves"></dt><dd id="win-moves"></dd></div>
-          <div><dt data-i18n="win.par"></dt><dd id="win-best"></dd></div>
-          <div><dt data-i18n="win.hints"></dt><dd id="win-hints"></dd></div>
+          <div><dd id="win-moves"></dd><dt data-i18n="win.moves"></dt></div>
+          <div><dd id="win-best"></dd><dt data-i18n="win.par"></dt></div>
+          <div><dd id="win-hints"></dd><dt data-i18n="win.hints"></dt></div>
         </dl>
         <p class="win-tip" id="win-tip"></p>
         <p class="win-note" id="win-note" hidden data-i18n="win.last"></p>
         <div class="win-actions">
           <button class="btn btn-primary btn-lg" id="win-next"><span data-i18n="win.next"></span><svg class="ic"><use href="#i-next"/></svg></button>
-          <div class="row2"><button class="btn btn-glass" id="win-levels" data-i18n="win.levels"></button><button class="btn btn-glass" id="win-replay" data-i18n="win.replay"></button></div>
-          <div class="row2"><button class="btn btn-glass" id="win-share" data-i18n="share.btn"></button><button class="btn btn-glass" id="win-photo" data-i18n="photo.btn"></button></div>
+          <div class="row4"><button class="btn btn-glass" id="win-levels" data-i18n="win.levels"></button><button class="btn btn-glass" id="win-replay" data-i18n="win.replay"></button><button class="btn btn-glass" id="win-share" data-i18n="share.btn"></button><button class="btn btn-glass" id="win-photo" data-i18n="photo.btn"></button></div>
         </div>
       </div>
     </div>

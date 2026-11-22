@@ -70,3 +70,15 @@
 
 .tool.spent { opacity: .45; }
 .tool.spent .badge { opacity: 1; }
+/* win card v2: a compact sheet that leaves the solved scene visible. Stars first, one stats line, one primary action, quiet text actions. */
+.win { background: linear-gradient(0deg, rgba(4,5,9,.6), rgba(4,5,9,0) 52%); }
+.win-card { padding: 20px 20px 10px; gap: 4px; border-radius: 28px; background: rgba(20,23,33,.95); border-color: rgba(255,255,255,.12); }
+.win-card .stars { margin: 0 0 6px; } .win-card .stars .ic { width: 40px; height: 40px; }
+.win-card h2 { font-size: 26px; margin: 0; } .win-lv { margin: 0; font-size: 13px; color: var(--text-3); }
+.win-stats { display: flex; justify-content: center; gap: 28px; padding: 10px 0 4px; border: 0; width: auto; }
+.win-stats > div { display: flex; flex-direction: column; align-items: center; } .win-stats dd { order: 1; margin: 0; font-size: 20px; } .win-stats dt { order: 2; font-size: 11.5px; margin-top: 1px; }
+.win-tip { margin: 2px 0 8px; font-size: 13.5px; min-height: 0; } .win-tip:empty { display: none; }
+.win-actions { gap: 4px; margin-top: 2px; } .win-actions .btn-primary { min-height: 52px; }
+.row4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; width: 100%; }
+.row4 .btn { background: none; border-color: transparent; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; min-height: 44px; padding: 0 4px; font-size: 13.5px; font-weight: 500; color: var(--text-2); }
+.row4 .btn:active { color: var(--text); }
