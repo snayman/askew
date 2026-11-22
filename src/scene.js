@@ -352,6 +352,7 @@
     s.busy = () => !!(entry || walkS || camAnim || win || drag || hint || twAnim || Object.values(slv).some((v) => v.to));
     s.setScale = (v) => { renderer.setPixelRatio(Math.min(pr, v)); sun.castShadow = v >= 1; s.resize(); };
     s.pr = pr; s._dbg = { sun, hemi, rim, renderer };
+    s.screenOf = (id) => { const t = tiles[id]; if (!t) return null; const v = topOf(id, new T.Vector3()).project(cam), r = canvas.getBoundingClientRect(); return [r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height]; };
     s.teleport = function (id) {   // the walker was carried to another tile: puff of light at both ends, no glide
       const a = fig.position.clone(), b = topOf(id, new T.Vector3()); burst(a.x, a.y + 0.2, a.z, 16, 0.9, 0.9, 0.7, false); fig.position.copy(b); figTile = id; landSq = 1; burst(b.x, b.y + 0.2, b.z, 16, 0.9, 0.9, 0.7, false);
     };

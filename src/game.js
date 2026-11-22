@@ -100,8 +100,33 @@
 
   // ---------- coach ----------
   const desk = () => matchMedia('(hover: hover) and (pointer: fine)').matches;
+  // ---------- ghost hand (first level): shows the gesture and the tap instead of explaining ----------
+  let ghostOn = false, ghostT = 0, demoing = false;
+  function ghostStop() {
+    ghostOn = false; clearTimeout(ghostT); const g = $('ghost'); g.hidden = true; g.className = 'ghost';
+    if (demoing) { demoing = false; st = W.initial(level); undo = []; turns = 0; trail = ''; scene.setState(st, true); scene.setCam(st.cam, true); seamN = seams().length; saveCur(); hud(); }
+  }
+  function ghostAt(cls, x, y, ms, then) { const g = $('ghost'); g.hidden = false; g.style.left = x + 'px'; g.style.top = y + 'px'; g.className = 'ghost'; void g.offsetWidth; g.className = 'ghost ' + cls; ghostT = setTimeout(() => { g.hidden = true; if (then) then(); }, ms); }
+  function ghostRot() {                          // the hand drags, the world turns to the right angle, the seam lights, then it all turns back
+    if (!ghostOn || !playing() || walking || won || (coachStep !== 'rot' && coachStep !== 'rot2')) return ghostStop();
+    const sol = W.solve(level, 60, W.initial(level)), a = sol && sol.actions[0]; if (!a || a.t !== 'rot') return ghostStop();
+    const r = $('game').getBoundingClientRect();
+    ghostAt('drag', r.left + r.width * 0.5, r.top + r.height * 0.7, 1500);
+    ghostT = setTimeout(() => { if (!ghostOn) return; demoing = true; rotate(a.dir);
+      ghostT = setTimeout(() => { if (!ghostOn) return; rotate(-a.dir); ghostT = setTimeout(() => { demoing = false; st = W.initial(level); undo = []; turns = 0; trail = ''; seamN = seams().length; saveCur(); hud(); ghostT = setTimeout(ghostRot, 1800); }, 700); }, 2500); }, 750);
+  }
+  function ghostTap() {                           // after the seam exists: the hand taps the far ring
+    if (!ghostOn || coachStep !== 'seam' || !playing() || walking || won) return;
+    const goal = level.tiles.find((x) => x.kind === 'goal'), p = goal && scene.screenOf(goal.id); if (!p) return;
+    ghostAt('tap', p[0], p[1] - 4, 1500, () => { ghostT = setTimeout(ghostTap, 1100); });
+  }
+  function ghostCue() {
+    clearTimeout(ghostT); if (coachStep === 'goal') return ghostStop();
+    ghostOn = true; ghostT = setTimeout(coachStep === 'seam' ? ghostTap : ghostRot, coachStep === 'seam' ? 500 : 2700);
+  }
   function coachShow() {
     const C = UI.Coach;
+    if (level.id === 'W01' && !daily && ['rot', 'rot2', 'seam', 'goal'].includes(coachStep)) { C.hide(); ghostCue(); return; }
     if (coachStep === 'rot') C.show(t('coach.rot'), desk() ? t('coach.rotkey') : '', 'drag');
     else if (coachStep === 'rot2') C.show(t('coach.seamno'), desk() ? t('coach.rotkey') : '', 'drag');
     else if (coachStep === 'seam') C.show(t('coach.seam'), '', 'tap');
@@ -116,7 +141,7 @@
     else C.hide();
   }
   const TUT = { W01: 'w01', W03: 'w03', W04: 'w04', W05: 'w05', W22: 'w22', W28: 'w28', W49: 'w49', W58: 'w58' };
-  function coachDone() { if (coachStep && TUT[level.id] && !daily) { save.tut[TUT[level.id]] = 1; persist(); } coachStep = null; UI.Coach.hide(); }
+  function coachDone() { ghostStop(); if (coachStep && TUT[level.id] && !daily) { save.tut[TUT[level.id]] = 1; persist(); } coachStep = null; UI.Coach.hide(); }
   function coachInit() {
     const k = TUT[level.id]; coachStep = null;
     if (k && !save.tut[k] && !daily) coachStep = level.id === 'W01' ? 'rot' : level.id === 'W03' ? 'lever' : level.id === 'W05' ? 'crumble' : level.id === 'W22' ? 'phase' : level.id === 'W28' ? 'toggle' : level.id === 'W49' ? 'warp' : level.id === 'W58' ? 'twin' : 'slider';
@@ -124,6 +149,7 @@
     if (!coachStep && !won) setTimeout(() => { if (playing() && !coachStep && !moves) UI.toast(pick(level.hint), 4600); }, 600);
   }
   function coachRotated(n) {
+    if (demoing) return;
     if (coachStep === 'rot' || coachStep === 'rot2' || coachStep === 'seam') {
       const was = coachStep; coachStep = n > 0 ? 'seam' : 'rot2'; if (was !== coachStep || was === 'rot2') coachShow();
     }
@@ -287,7 +313,7 @@
   // ---------- level start ----------
   function startLevel(i, opts) {
     if (lockedLv(LV[i])) { showOffer(); return; }
-    photo(false); daily = !!(opts && opts.daily); dailyDay = daily ? opts.day || dayNo() : 0; li = i; level = daily ? Object.assign({}, LV[i], { cam: opts.cam || 0 }) : LV[i]; st = W.initial(level); trail = ''; undo = []; moves = 0; turns = 0; hints = 0; walking = false; won = false; bgOn = false; clearHl(); hideBar(); t0 = Date.now();
+    ghostStop(); photo(false); daily = !!(opts && opts.daily); dailyDay = daily ? opts.day || dayNo() : 0; li = i; level = daily ? Object.assign({}, LV[i], { cam: opts.cam || 0 }) : LV[i]; st = W.initial(level); trail = ''; undo = []; moves = 0; turns = 0; hints = 0; walking = false; won = false; bgOn = false; clearHl(); hideBar(); t0 = Date.now();
     const c = daily ? null : save.curs[level.id]; if (c && c.id === level.id && c.st && LV[i].tiles.some((x) => x.id === c.st.tile)) { st = c.st; undo = c.undo || []; moves = c.moves || 0; turns = c.turns || 0; hints = c.hints || 0; trail = c.trail || ''; }
     $('win').hidden = true; $('toast').classList.remove('is-on');
     scene.setLevel(level); scene.setState(st, false); scene.setCam(st.cam, false); seamN = seams().length; scene.setInputEnabled(true);
@@ -353,7 +379,7 @@
   $('offer-x').addEventListener('click', () => { $('offer').hidden = true; });
   function proRows() { $('b-pro').hidden = !gateOn(); $('t-pro').textContent = unlockedAll() ? t('pw.active') : t('pw.open') }
   // Stuck for a while? Offer the hint button instead of leaving the player alone.
-  ['pointerdown', 'keydown'].forEach((ev) => document.addEventListener(ev, bumpIdle, true));
+  ['pointerdown', 'keydown'].forEach((ev) => document.addEventListener(ev, () => { bumpIdle(); if (ghostOn) { ghostStop(); ghostT = setTimeout(() => { if (level.id === 'W01' && !daily && ['rot', 'rot2', 'seam'].includes(coachStep) && playing() && !walking) ghostCue(); }, 7000); } }, true));
   setInterval(() => {
     if (!playing() || won || walking || document.hidden || UI.Coach.on || !$('dead').hidden || !$('offer').hidden) return;
     if (Date.now() - idleAt > 25000 && !save.hu[level.id]) { idleAt = Date.now(); say('hint.idle', null, 4800); const hb = $('h-hint'); hb.classList.remove('glow'); void hb.offsetWidth; hb.classList.add('glow'); track('idle', { level: level.id }); }
