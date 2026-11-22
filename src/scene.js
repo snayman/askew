@@ -266,7 +266,7 @@
         } else if (t.kind === 'warp') {
           const p = 0.5 + 0.5 * Math.sin(time * 2.4 + (t.base[0] + t.base[2])); t.ring.rotation.z = time * 1.1; t.pring.scale.setScalar(0.82 + 0.1 * p); t.halo.material.opacity = 0.22 + 0.2 * p;
         } else if (t.kind === 'goal' || t.kind === 'tgoal') {
-          const p = 0.5 + 0.5 * Math.sin(time * 2.2); t.ring.rotation.z = time * 0.6; t.ring.scale.setScalar(1 + 0.05 * p); t.disc.material.opacity = 0.1 + 0.12 * p; t.halo.material.opacity = (win ? 0 : 0.32 + 0.16 * p); if (t.pil) t.pil.material.opacity = win ? 0 : 0.12 + 0.08 * p;
+          const p = 0.5 + 0.5 * Math.sin(time * 2.2); t.ring.rotation.z = time * 0.6; t.ring.scale.setScalar(1 + 0.05 * p); t.disc.material.opacity = 0.1 + 0.12 * p; t.halo.material.opacity = (win ? 0 : 0.32 + 0.16 * p); if (t.pil) { if (win && win.goal === t) { const u = clamp(win.t / 2.2, 0, 1); t.pil.material.opacity = 0.75 * Math.sin(Math.PI * Math.min(1, u * 1.1)); t.pil.scale.set(1 + 0.8 * u, 1 + 2.4 * ease(u), 1 + 0.8 * u); t.pil.position.y = 0.5 + 0.9 * t.pil.scale.y; } else if (win) t.pil.material.opacity = 0; else { t.pil.material.opacity = 0.12 + 0.08 * p; t.pil.scale.set(1, 1, 1); t.pil.position.y = 1.4; } }
         }
         if (t.sl) { const ok = hooks.canSlide ? hooks.canSlide(t.sl) : true; t.halo2.material.opacity = (ok ? 0.22 + 0.12 * Math.sin(time * 2.6) : 0.05); t.grip.children.forEach((m) => (m.material.opacity = ok ? 0.8 : 0.25)); }
       }
@@ -399,17 +399,21 @@
 
     // ---------- win ----------
     s.playWin = function (onDone) {
-      if (win) return; const gl = Object.values(tiles).find((t) => t.kind === 'goal'); win = { t: 0, onDone, burst: 0, a0: az, goal: gl };
+      if (win) return; const gl = Object.values(tiles).find((t) => t.kind === 'goal'); win = { t: 0, onDone, burst: 0, a0: az, goal: gl, wave: null }; if (gl) { const gp = gl.base; win.wave = Object.values(tiles).map((x) => ({ t: x, d: Math.hypot(x.base[0] - gp[0], (x.base[1] - gp[1]) * 1.3, x.base[2] - gp[2]) })); const mx = Math.max(1, ...win.wave.map((o) => o.d)); win.wave.forEach((o) => { o.d /= mx; o.e0 = o.t.mat.emissive.clone(); }); }
       walkS = null; camAnim = null; const g = gl ? topOf(gl.id) : fig.position; burst(g.x, g.y + 0.1, g.z, 40, 1.6, 1.8, 1.4, false);
     };
     function updateWin(dt) {
-      const w = win; w.t += dt; const T_ = 2.5, k = clamp(w.t / T_, 0, 1); az = w.a0 + 90 * ease(k);
+      const w = win; w.t += dt; if (s._wfreeze != null) w.t = s._wfreeze; const T_ = 3.1, k = clamp(w.t / T_, 0, 1); az = w.a0 + 90 * ease(k);
+      cam.zoom = 1 - 0.17 * Math.sin(Math.PI * Math.min(1, k * 1.08));                                  // pull back and let the whole island breathe
+      if (w.wave) { const front = clamp((w.t - 0.15) / 1.6, 0, 1.25), glowC = new T.Color(pal.glow);
+        for (const o of w.wave) { const wv = clamp(1 - Math.abs(front - o.d) / 0.28, 0, 1), fade = 1 - k * 0.6; o.t.mat.emissive.copy(o.e0).lerp(glowC, wv * 0.55 * fade); o.t.g.position.y += wv * 0.14; } }
+      { const U = bg.material.uniforms, boost = 1 + 1.6 * Math.sin(Math.PI * Math.min(1, k * 1.15)); U.hue.value.set(pal.glow).multiplyScalar(boost); }
       const f = clamp((w.t - 0.25) / 1.4, 0, 1), g = w.goal && topOf(w.goal.id);
       if (w.goal) { w.goal.ring.scale.setScalar(1 + 1.2 * Math.sin(Math.PI * Math.min(1, w.t / 0.9))); w.goal.disc.material.opacity = 0.9 * (1 - k); w.goal.halo.material.opacity = 0.7 * (1 - k); w.goal.halo.scale.setScalar(1.5 + 2.5 * Math.min(1, w.t / 0.5)); }
       if (g) { fig.position.set(g.x, g.y + ease(f) * 1.5, g.z); figScale(1 - 0.9 * f * f); yaw += dt * (2 + 10 * f); fig.rotation.y = yaw; shadow.visible = false; if (f > 0 && f < 1) { w.burst += dt; while (w.burst > 0.03) { w.burst -= 0.03; burst(fig.position.x, fig.position.y + 0.3, fig.position.z, 2, 0.5, 0.9, 1.0, false); } } }
       if (f >= 1) fig.visible = false;
       if (twTile && fig2.visible) { const q = topOf(twTile); fig2.position.set(q.x, q.y + ease(f) * 1.5, q.z); fig2Scale(1 - 0.9 * f * f); shadow2.visible = false; if (f >= 1) fig2.visible = false; }
-      if (w.t >= T_) { win = null; logical = mod(logical + 1, 4); fig.visible = false; const d = w.onDone; d && d(); }
+      if (w.t >= T_) { if (w.wave) for (const o of w.wave) o.t.mat.emissive.copy(o.e0); bg.material.uniforms.hue.value.set(pal.glow); cam.zoom = 1; win = null; logical = mod(logical + 1, 4); fig.visible = false; const d = w.onDone; d && d(); }
     }
 
     // ---------- main frame ----------
