@@ -15,7 +15,7 @@
     scene.add(cam, world);
     const bg = FX.makeBackground('#EDE4CF'); scene.add(bg);
     const hemi = new T.HemisphereLight(0xdfe6ff, 0x3a4260, 0.62); scene.add(hemi);
-    const sun = new T.DirectionalLight(0xfff0d8, 0.95); scene.add(sun, sun.target); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024); sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.04; sun.shadow.camera.near = 5; sun.shadow.camera.far = 140; const sunOff = new T.Vector3(-4, 7, 3).normalize().multiplyScalar(45);
+    const sun = new T.DirectionalLight(0xfff0d8, 0.82); scene.add(sun, sun.target); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024); sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.04; sun.shadow.camera.near = 5; sun.shadow.camera.far = 140; const sunOff = new T.Vector3(-4, 7, 3).normalize().multiplyScalar(45);
     const rim = new T.DirectionalLight(0x9ab8ff, 0.18); rim.position.set(5, 2, -2); cam.add(rim, rim.target); // light lives in camera space
     
     sh.rim = new T.BufferGeometry().setFromPoints([[-1, 0, -1], [1, 0, -1], [1, 0, 1], [-1, 0, 1]].map((p) => new T.Vector3(p[0] * 0.455, 0, p[1] * 0.455)));
@@ -52,13 +52,13 @@
     const mix = (a, b, t) => '#' + new T.Color(a).lerp(new T.Color(b), t).getHexString();
     const P = (t, l, r, glow, bgDeep, bgLight) => ({ t, l, r, glow, top: bgDeep, bot: mix(bgDeep, bgLight, 0.55), sun: mix('#FFFFFF', '#F2E6CC', 0.5), sky: mix('#C8D8CF', bgLight, 0.5), gnd: mix(bgDeep, r, 0.5) });
     const PAL = {
-      1: P('#E6DCC4', '#B8AD93', '#6F6A55', '#EDE4CF', '#0E1C17', '#2A4A3C'),   // bone stone on dark green
+      1: P('#CDC2A6', '#9A9078', '#585342', '#EDE4CF', '#0E1C17', '#2A4A3C'),   // bone stone on dark green
       2: P('#3C6B55', '#1B3A2E', '#0C1C16', '#8FD6B8', '#07100E', '#1B4536'),   // emerald night
-      3: P('#4B4D4B', '#2A2B2B', '#141515', '#E0343A', '#0B0B0C', '#2A1A1A'),   // black marble
+      3: P('#6C706C', '#3F4140', '#202221', '#E0343A', '#0D0C0D', '#3A2326'),   // black marble
       4: P('#8FB5A3', '#587A6B', '#2F4A3E', '#BFE3D0', '#0C1815', '#2C5245'),   // mist
-      5: P('#D8CDB4', '#A39A82', '#5E5A49', '#EDE4CF', '#141A16', '#38503F'),   // bone dusk
+      5: P('#C0B59A', '#8C836E', '#4E4A3C', '#EDE4CF', '#101612', '#2C4033'),   // bone dusk
       6: P('#5E1E22', '#38110F', '#1B0809', '#E0343A', '#0D0708', '#3A1517'),   // oxblood
-      7: P('#E9E6DD', '#A9ADA6', '#5F6663', '#9FE3C8', '#0B1412', '#2E453B'),   // mirror
+      7: P('#C9CFCA', '#8D9490', '#4C5350', '#9FE3C8', '#09110F', '#1F322A'),   // mirror
     };
     const grainTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'), im = x.createImageData(128, 128); let seed = 7; const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
       for (let i = 0; i < 128 * 128; i++) { const v = 232 + (r() - 0.5) * 26 - (r() > 0.985 ? 38 : 0); im.data[i * 4] = im.data[i * 4 + 1] = im.data[i * 4 + 2] = v; im.data[i * 4 + 3] = 255; }
