@@ -55,8 +55,11 @@
     const head = new T.Mesh(new T.SphereGeometry(0.1, 20, 16), mB); head.position.y = 0.47; body.add(head);
     const hood = new T.Mesh(new T.ConeGeometry(0.112, 0.2, 22), mH); hood.position.set(0, 0.125, 0); hood.rotation.z = 0.14; head.add(hood);
     const sc = new T.Mesh(new T.TorusGeometry(0.1, 0.034, 10, 24), mS); sc.rotation.x = Math.PI / 2; sc.position.y = 0.375; body.add(sc);
-    const tail = new T.Group(); tail.position.set(-0.07, 0.375, -0.07); const tm = new T.Mesh(new T.BoxGeometry(0.06, 0.22, 0.022), mS); tm.position.y = -0.105; tail.add(tm); body.add(tail);
-    g.userData = { body, head, tail, headY: 0.47, mats: [mB, mH, mS] }; return g;
+    // the scarf tail is a chain of four short ribbons, each hanging from the one above, so it can ripple with a delay
+    const tail = new T.Group(); tail.position.set(-0.07, 0.375, -0.07); body.add(tail);
+    const segs = []; let par = tail; const SL = 0.075;
+    for (let i = 0; i < 4; i++) { const sg = new T.Group(); sg.position.y = i ? -SL : 0; const m = new T.Mesh(new T.BoxGeometry(0.06 - i * 0.008, SL + 0.004, 0.022), mS); m.position.y = -SL / 2; sg.add(m); par.add(sg); segs.push(sg); par = sg; }
+    g.userData = { body, head, tail, segs, headY: 0.47, mats: [mB, mH, mS] }; return g;
   }
 
   // Additive point pool with per-point size/alpha/colour. Attributes are plain arrays you edit, then call .flush().

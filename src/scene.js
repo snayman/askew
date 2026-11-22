@@ -243,7 +243,7 @@
       if (a) { a.t = Math.min(1, a.t + dt / (a.seam ? 0.45 : 0.26)); const e = a.t * a.t * (3 - 2 * a.t); fig2.position.lerpVectors(a.from, a.to, e); arc = a.seam ? 0 : Math.sin(Math.PI * a.t); fig2.position.y += arc * 0.24; if (a.t >= 1) { onTop(fig2, false); burst(a.to.x, a.to.y + 0.03, a.to.z, 5, 0.4, 0.3, 0.45, true); twAnim = null; } }
       else if (!win) topOf(twTile, fig2.position);
       shadow2.visible = !(a && a.seam); shadow2.position.set(fig2.position.x, topOf(twTile, new T.Vector3()).y + 0.006 - (a ? 0 : 0), fig2.position.z); if (a) shadow2.position.y = lerp(a.from.y, a.to.y, a.t) + 0.006; shadow2.scale.setScalar(0.62 * (1 - 0.3 * arc));
-      const u = fig2.userData; u.body.scale.set(1, 1 + 0.02 * Math.sin(time * 2.2 + 1.3), 1); u.head.position.y = u.headY + 0.004 * Math.sin(time * 2.2 + 2); u.tail.rotation.z = 0.25 * Math.sin(time * 3 + 1);
+      const u = fig2.userData; u.body.scale.set(1, 1 + 0.02 * Math.sin(time * 2.2 + 1.3), 1); u.head.position.y = u.headY + 0.004 * Math.sin(time * 2.2 + 2); poseFigure(u, dt, time, !!twAnim, twAnim ? twAnim.t : 0, 0, 1.7);
     }
     function applyTiles(dt) {
       for (const k in tiles) {
@@ -378,6 +378,15 @@
       if (t >= 1) { figOnTop(false); shadow.visible = true; figTile = w.path[w.i]; landSq = 1; burst(w.to.x, w.to.y + 0.03, w.to.z, 7, 0.45, 0.35, 0.5, true); const i = w.i; try { w.onStep && w.onStep(w.path[i], i); } catch (e) { if (root.console) console.error('walk step error', e); } if (walkS === w) nextHop(); }
     }
     const shadowAt = (gy, arc) => { shadow.position.set(fig.position.x, gy + 0.006, fig.position.z); shadow.scale.setScalar(0.62 * (1 - 0.3 * (arc || 0))); sh.dark.opacity = 0.5 - 0.2 * (arc || 0); };
+    // Gait: lean into the step, the hood lags a little behind the body, the scarf ripples down its four segments and cracks when you land.
+    function poseFigure(u, dt, tm, walking, wt, land, phase) {
+      u.wk = (u.wk || 0) + ((walking ? 1 : 0) - (u.wk || 0)) * Math.min(1, dt * 9);
+      const lean = u.wk * (0.16 + 0.1 * Math.sin(Math.PI * wt)); u.lean = (u.lean || 0) + (lean - (u.lean || 0)) * Math.min(1, dt * 14);
+      u.body.rotation.x = u.lean; u.head.rotation.x = -u.lean * 0.9 + 0.05 * Math.sin(tm * 2.1 + phase); u.head.rotation.z = 0.04 * Math.sin(tm * 1.7 + phase);
+      u.tail.rotation.x = 0.28 + u.wk * 0.55 + u.lean * 0.6 + land * 0.5;
+      const amp = 0.14 + u.wk * 0.3 + land * 0.5;
+      u.segs.forEach((sg, i) => { sg.rotation.x = amp * Math.sin(tm * (4.2 + u.wk * 3) - i * 0.95 + phase) + 0.1; sg.rotation.z = (0.1 + 0.18 * u.wk) * Math.sin(tm * 3.1 - i * 0.8 + phase + 1.3); });
+    }
     function updateFigure(dt) {
       if (!fig.visible) { shadow.visible = false; return; } shadow.visible = true;
       const u = fig.userData, w = walkS;
@@ -385,7 +394,7 @@
       const tgt = w ? w.yaw : yaw; let d = mod(tgt - yaw + Math.PI, 6.2832) - Math.PI; yaw += d * Math.min(1, dt * 14); fig.rotation.y = yaw;
       landSq = Math.max(0, landSq - dt * 5); let sy = 1 + 0.02 * Math.sin(time * 2.2) - 0.2 * landSq * landSq;
       if (w) { const t = w.t; sy += t < 0.15 ? -0.16 * (1 - t / 0.15) : 0.14 * Math.sin(Math.PI * t); }
-      u.body.scale.set(1 / Math.sqrt(sy), sy, 1 / Math.sqrt(sy)); u.head.position.y = u.headY + 0.004 * Math.sin(time * 2.2 + 1); u.tail.rotation.z = 0.25 * Math.sin(time * 3) + (w ? 0.5 : 0); u.tail.rotation.x = 0.3 + (w ? 0.4 : 0);
+      u.body.scale.set(1 / Math.sqrt(sy), sy, 1 / Math.sqrt(sy)); u.head.position.y = u.headY + 0.004 * Math.sin(time * 2.2 + 1); poseFigure(u, dt, time, !!w, w ? w.t : 0, landSq, 0);
     }
 
     // ---------- win ----------
