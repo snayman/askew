@@ -1,3 +1,14 @@
+/* Fonts (SIL OFL 1.1, via fontsource): Playfair Display for the wordmark and titles, Literata for names, numbers and notes. Latin + Cyrillic only. */
+@font-face { font-family: 'Playfair Display'; font-style: normal; font-weight: 500; font-display: swap; src: url('fonts/pf-latin-500-normal.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'Playfair Display'; font-style: normal; font-weight: 500; font-display: swap; src: url('fonts/pf-cyrillic-500-normal.woff2') format('woff2'); unicode-range: U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116; }
+@font-face { font-family: 'Playfair Display'; font-style: italic; font-weight: 500; font-display: swap; src: url('fonts/pf-latin-500-italic.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'Playfair Display'; font-style: italic; font-weight: 500; font-display: swap; src: url('fonts/pf-cyrillic-500-italic.woff2') format('woff2'); unicode-range: U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116; }
+@font-face { font-family: 'Literata'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/lt-latin-400-normal.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'Literata'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/lt-cyrillic-400-normal.woff2') format('woff2'); unicode-range: U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116; }
+@font-face { font-family: 'Literata'; font-style: normal; font-weight: 500; font-display: swap; src: url('fonts/lt-latin-500-normal.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'Literata'; font-style: normal; font-weight: 500; font-display: swap; src: url('fonts/lt-cyrillic-500-normal.woff2') format('woff2'); unicode-range: U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116; }
+@font-face { font-family: 'Literata'; font-style: italic; font-weight: 400; font-display: swap; src: url('fonts/lt-latin-400-italic.woff2') format('woff2'); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'Literata'; font-style: italic; font-weight: 400; font-display: swap; src: url('fonts/lt-cyrillic-400-italic.woff2') format('woff2'); unicode-range: U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116; }
 /* Askew theme: black-green stone, bone, one scarlet. Loaded last; it replaces the earlier glass look.
    Rules: flat plates with small radii, no blur, serif for names and numbers, sentence case everywhere, scarlet only where something matters
    (the Play plate, the traveller's scarf, a win), bone for everything that is light. */
@@ -8,7 +19,7 @@
   --gold: #D9262F; --gold-hi: #EDE4CF; --gold-lo: #8E0F18; --teal: #8FD6B8; --danger: #E0343A;
   --line: rgba(237,228,207,.10); --line-2: rgba(237,228,207,.20); --glass: rgba(15,27,22,.86); --glass-hi: transparent;
   --shadow: none; --scene-top: #0E1C17; --scene-bottom: #07100E;
-  --serif: "Fraunces", "New York", ui-serif, "Iowan Old Style", "Charter", Georgia, serif;
+  --serif: "Literata", "New York", ui-serif, "Iowan Old Style", Georgia, serif; --display: "Playfair Display", "Literata", "New York", ui-serif, Georgia, serif;
   --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 body { background: var(--ink-0); }
@@ -104,3 +115,12 @@ h1, h2, h3, .wordmark { font-family: var(--serif); font-weight: 500; letter-spac
 .splash { background: radial-gradient(80% 60% at 50% 42%, #14281F, var(--ink-0)); }
 .rbw { font-family: var(--serif); font-weight: 400; letter-spacing: .42em; } .rbw-s { font-family: var(--serif); font-style: italic; text-transform: none; letter-spacing: .04em; font-size: 16px; }
 .loadline i { background: linear-gradient(90deg, transparent, var(--scarlet-hi), transparent); }
+
+/* display face: wordmark and screen titles; everything else serif is Literata */
+.wordmark, .page-title h2, .win-card h2, .modal-card h3, .ch-head h3, .transition__num, .rbw, .hud-title strong, .chip b, .win-stats dd { font-family: var(--display); font-weight: 500; }
+.hud-title strong, .chip b, .win-stats dd { font-family: var(--serif); }
+.wordmark, .wordmark.big { letter-spacing: -.02em !important; }
+.panel { background: var(--ink-1); border: 1px solid var(--line-2); border-radius: 3px; box-shadow: none; }
+.set-ic { border-radius: 2px; background: rgba(237,228,207,.06); border: 1px solid var(--line); color: var(--bone); }
+.set-ic .ic { color: var(--bone); }
+.set-text b { font-family: var(--serif); font-weight: 500; font-size: 17px; }
