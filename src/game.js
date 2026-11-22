@@ -298,7 +298,7 @@
   // Level card: ink fades in with the level number and chapter, the level is already swapped underneath, then it clears. Skipped for the very first start.
   let transT = 0, booted = false;
   function trans() {
-    const e = $('transition'); if (!e) return; if (!booted) { booted = true; return; }
+    const e = $('transition'); if (!e) return;
     const ch = (W.CHAPTERS || []).find((x) => x.n === (level.ch || 1));
     $('tr-num').textContent = daily ? '·' : li + 1; $('tr-chapter').textContent = daily ? t('daily.t') : t('ch.n', { n: level.ch || 1 }) + (ch ? ' · ' + V.i18n.pick(ch.name) : '');
     e.classList.add('is-on'); A.play('trans'); clearTimeout(transT); transT = setTimeout(() => e.classList.remove('is-on'), RM ? 160 : 520);
@@ -395,6 +395,8 @@
     else if (k === 'escape') $('h-back').click(); else return;
     e.preventDefault();
   });
+  UI.on('*', (name) => { const wide = innerWidth / innerHeight >= 1.25; scene.setLift(name === 'menu' && !wide ? 0.2 : 0, name === 'menu' && wide ? -0.16 : 0); });
+  addEventListener('resize', () => { const m = UI.cur() === 'menu', wide = innerWidth / innerHeight >= 1.25; scene.setLift(m && !wide ? 0.2 : 0, m && wide ? -0.16 : 0); });
   UI.on('menu', () => { refreshText(); backdrop(); }); UI.on('levels', () => { UI.buildLevels(save, startLevel); backdrop(); });
   UI.on('settings', () => { applySettings(); $('set-foot').textContent = t('set.foot', { n: LV.length }); backdrop(); }); UI.on('howto', () => { UI.buildHow(); backdrop(); });
   UI.on('play', () => { document.activeElement && document.activeElement.blur && document.activeElement.blur(); });
@@ -412,15 +414,19 @@
   // ---------- boot ----------
   V.i18n.setLang(save.set.lang); applySettings(); UI.buildHow(); scene.resize();
   UI.go('splash');
-  const boot = Date.now();
-  const ready = (document.fonts && document.fonts.ready) || Promise.resolve();
-  Promise.race([ready, new Promise((r) => setTimeout(r, 1600))]).then(() => setTimeout(() => {
-    if (UI.cur() !== 'splash') return;
-    track('app_open', { first: !Object.keys(save.solved).length });
+  const boot = Date.now(), returning = !!Object.keys(save.solved).length || !!Object.keys(save.curs).length;
+  if (returning) $('splash').classList.add('short');
+  let left = false;
+  function leaveSplash() {
+    if (left || UI.cur() !== 'splash' || /hold/.test(location.hash)) return; left = true;
+    track('app_open', { first: !returning });
     const dl = /[?&]d=(\d+)/.exec(location.search), dn = dl ? +dl[1] : 0;
     if (dn >= 1 && dn <= dayNo() && solvedN() >= DAILY_AT) { const p = dailyPick(dn); startLevel(p.i, { daily: true, cam: p.cam, day: p.day }); }  // shared link: the same daily level
-    else if (!solvedN() && !Object.keys(save.curs).length && !/nostart/.test(location.hash)) startLevel(0); else UI.go('menu'); // a new player lands straight in level 1
-  }, Math.max(300, 1300 - (Date.now() - boot))));
+    else UI.go('menu');
+  }
+  const ready = (document.fonts && document.fonts.ready) || Promise.resolve();
+  Promise.race([ready, new Promise((r) => setTimeout(r, 1600))]).then(() => setTimeout(leaveSplash, Math.max(300, (returning ? 2300 : 4000) - (Date.now() - boot))));
+  $('splash').addEventListener('pointerdown', () => { if (Date.now() - boot > 700) leaveSplash(); });
 
   // ---------- debug ----------
   if (/debug/.test(location.hash)) {

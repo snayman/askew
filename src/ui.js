@@ -11,6 +11,7 @@
     if (name === 'back') name = 'menu';
     const prev = cur; cur = name; $('app').classList.toggle('on-menu', name === 'menu');
     screens.forEach((s) => { const on = s.dataset.screen === name; s.classList.toggle('is-active', on); s.inert = !on; s.setAttribute('aria-hidden', on ? 'false' : 'true'); });
+    if (hooks['*']) hooks['*'](name, prev);
     if (hooks[name]) hooks[name](prev);
     const f = doc.querySelector('.screen.is-active .btn-primary, .screen.is-active .icon-btn'); if (f && name !== 'play') try { f.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
   }

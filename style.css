@@ -26,8 +26,8 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
 
 #app { position: fixed; inset: 0; background: linear-gradient(180deg, var(--scene-top), var(--scene-bottom)); }
 #game { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none; transition: transform 1s var(--ease); }
-#app.on-menu #game { transform: translateY(-30%) scale(.9); -webkit-mask-image: radial-gradient(60% 50% at 50% 50%, #000 40%, transparent 100%); mask-image: radial-gradient(60% 50% at 50% 50%, #000 40%, transparent 100%); }
-@media (min-aspect-ratio: 5/4) { #app.on-menu #game { transform: translateX(16%); } }
+#app.on-menu #game { transform: none; }
+
 
 /* screens */
 .screen { position: absolute; inset: 0; opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(8px);
@@ -154,3 +154,32 @@ input { user-select: text; -webkit-user-select: text; font: inherit; color: inhe
 .legend-i { display: flex; gap: 14px; align-items: flex-start; padding: 14px 0; } .legend-i + .legend-i { border-top: 1px solid var(--line); }
 .legend-i svg { width: 28px; height: 28px; flex: none; margin-top: 1px; } .legend-i b { display: block; font: 600 15px/1.25 var(--sans); } .legend-i span { display: block; color: var(--text-2); font-size: 13.5px; line-height: 1.4; margin-top: 2px; }
 .set-foot { text-align: center; color: var(--text-3); font-size: 12.5px; margin: 18px 0 8px; }
+
+/* intro: RBW, then the mark assembles (two tiles slide together, the gold path draws), then the word settles in askew and straightens. ~3.4 s, tap to skip. Opacity/transform only. */
+.splash { gap: 0; background: radial-gradient(80% 60% at 50% 42%, #1A2030, var(--ink-0)); }
+.intro-a, .intro-b { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.rbw { font: 600 clamp(40px, 12vw, 64px)/1 var(--sans); letter-spacing: .5em; padding-left: .5em; color: var(--text); }
+.rbw-s { margin-top: 14px; font: 400 14px/1 var(--sans); letter-spacing: .24em; text-transform: uppercase; color: var(--text-3); padding-left: .24em; }
+.intro-a { opacity: 0; } .is-active .intro-a { animation: introA 1.9s var(--ease) .15s both; }
+@keyframes introA { 0% { opacity: 0; transform: scale(.96); } 30% { opacity: 1; transform: none; } 72% { opacity: 1; } 100% { opacity: 0; transform: scale(1.02); } }
+.mk { width: 150px; height: 150px; overflow: visible; margin-bottom: 14px; filter: drop-shadow(0 0 28px rgba(233,194,122,.25)); }
+.mk-a, .mk-b, .mk-r, .mk-d, .mk-p { opacity: 0; transform-box: fill-box; transform-origin: center; }
+.mk-p { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.is-active .mk-a { animation: mkA .8s var(--ease) 1.95s both; } .is-active .mk-b { animation: mkB .8s var(--ease) 2.05s both; }
+.is-active .mk-p { animation: mkP .6s var(--ease) 2.65s both; } .is-active .mk-r { animation: mkPop .4s var(--spring) 2.6s both; } .is-active .mk-d { animation: mkPop .4s var(--spring) 3.1s both; }
+@keyframes mkA { from { opacity: 0; transform: translate(-14px, -18px); } to { opacity: 1; transform: none; } }
+@keyframes mkB { from { opacity: 0; transform: translate(14px, 18px); } to { opacity: 1; transform: none; } }
+@keyframes mkP { from { opacity: 1; stroke-dashoffset: 1; } to { opacity: 1; stroke-dashoffset: 0; } }
+@keyframes mkPop { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: none; } }
+.word span { display: inline-block; opacity: 0; }
+.is-active .word span { animation: letter .7s var(--ease) both; animation-delay: calc(2.4s + var(--k, 0) * 70ms); }
+.word span:nth-child(1) { --k: 0; } .word span:nth-child(2) { --k: 1; } .word span:nth-child(3) { --k: 2; } .word span:nth-child(4) { --k: 3; } .word span:nth-child(5) { --k: 4; }
+@keyframes letter { from { opacity: 0; transform: translateY(18px) skewX(-16deg) rotate(4deg); } to { opacity: 1; transform: none; } }
+.splash-tag { margin: 12px 0 0; color: var(--text-2); font-size: 15px; opacity: 0; } .is-active .splash-tag { animation: fade .8s ease-out 3.05s both; }
+.intro-b .wordmark { margin: 0; }
+.loadline { position: absolute; bottom: calc(var(--sab) + 48px); margin: 0; opacity: .6; }
+/* returning players: skip the studio card, shorter timeline */
+.splash.short .intro-a { display: none; }
+.splash.short .mk-a { animation-delay: .1s !important; } .splash.short .mk-b { animation-delay: .2s !important; } .splash.short .mk-p { animation-delay: .8s !important; } .splash.short .mk-r { animation-delay: .75s !important; } .splash.short .mk-d { animation-delay: 1.25s !important; }
+.splash.short .word span { animation-delay: calc(.5s + var(--k, 0) * 70ms) !important; } .splash.short .splash-tag { animation-delay: 1.2s !important; }
+@media (prefers-reduced-motion: reduce) { .is-active .intro-a { animation: none; display: none; } .mk-a, .mk-b, .mk-r, .mk-d, .mk-p, .word span, .splash-tag { opacity: 1 !important; animation: none !important; stroke-dashoffset: 0 !important; transform: none !important; } }

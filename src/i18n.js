@@ -6,7 +6,7 @@
     ru: {
       'app.tagline': 'Мир, где расстояние — вопрос ракурса',
       'menu.play': 'Играть', 'menu.continue': 'Продолжить', 'menu.levels': 'Уровни', 'menu.how': 'Как играть', 'menu.settings': 'Настройки',
-      'menu.credit': '',
+      'menu.credit': 'RBW', 'splash.presents': 'представляет',
       'pw.title': 'Полная версия', 'pw.p': 'Все остальные главы и будущие уровни. Бесплатные главы остаются бесплатными навсегда. Разовая покупка, без подписки.', 'pw.buy': 'Купить полную версию', 'pw.restore': 'Восстановить покупку', 'pw.later': 'Позже', 'pw.bad': 'Покупка не завершена', 'pw.on': 'Полная версия открыта. Спасибо!', 'pw.open': 'Полная версия', 'pw.active': 'Полная версия · открыта', 'levels.pro': 'Полная версия',
       'hint.idle': 'Застрял? Нажми на лампочку: подскажу идею. Один раз на уровень',
       'daily.t': 'Уровень дня', 'daily.lock': 'Уровень дня · ещё {n}', 'daily.done': 'Пройден · завтра новый', 'daily.note': 'Новый уровень завтра', 'share.btn': 'Поделиться', 'share.copied': 'Скопировано', 'share.fail': 'Не удалось скопировать', 'photo.btn': 'Фото',
@@ -42,7 +42,7 @@
     en: {
       'app.tagline': 'A world where distance is a matter of angle',
       'menu.play': 'Play', 'menu.continue': 'Continue', 'menu.levels': 'Levels', 'menu.how': 'How to play', 'menu.settings': 'Settings',
-      'menu.credit': '',
+      'menu.credit': 'RBW', 'splash.presents': 'presents',
       'pw.title': 'Full version', 'pw.p': 'Every remaining chapter and all future levels. Free chapters stay free forever. One purchase, no subscription.', 'pw.buy': 'Buy the full version', 'pw.restore': 'Restore purchase', 'pw.later': 'Not now', 'pw.bad': 'Purchase was not completed', 'pw.on': 'Full version unlocked. Thank you!', 'pw.open': 'Full version', 'pw.active': 'Full version · unlocked', 'levels.pro': 'Full version',
       'hint.idle': 'Stuck? Tap the bulb for an idea. One per level',
       'daily.t': 'Daily level', 'daily.lock': 'Daily level · {n} to go', 'daily.done': 'Solved · new one tomorrow', 'daily.note': 'A new level tomorrow', 'share.btn': 'Share', 'share.copied': 'Copied', 'share.fail': 'Could not copy', 'photo.btn': 'Photo',

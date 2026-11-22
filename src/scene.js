@@ -14,9 +14,10 @@
     const scene = new T.Scene(), cam = new T.OrthographicCamera(-1, 1, 1, -1, 0.1, 300), world = new T.Group();
     scene.add(cam, world);
     const bg = FX.makeBackground('#E9C27A'); scene.add(bg);
-    scene.add(new T.HemisphereLight(0xdfe6ff, 0x3a4260, 0.82));
-    const sun = new T.DirectionalLight(0xfff0d8, 0.62); sun.position.set(-3, 6, 4.5); cam.add(sun, sun.target); // light lives in camera space
-    const bevel = FX.bevelGeo(0.07); sh.bevel = bevel;
+    const hemi = new T.HemisphereLight(0xdfe6ff, 0x3a4260, 0.5); scene.add(hemi);
+    const sun = new T.DirectionalLight(0xfff0d8, 0.62); sun.position.set(-4, 7, 3); cam.add(sun, sun.target);
+    const rim = new T.DirectionalLight(0x9ab8ff, 0.18); rim.position.set(5, 2, -2); cam.add(rim, rim.target); // light lives in camera space
+    
     sh.rim = new T.BufferGeometry().setFromPoints([[-1, 0, -1], [1, 0, -1], [1, 0, 1], [-1, 0, 1]].map((p) => new T.Vector3(p[0] * 0.455, 0, p[1] * 0.455)));
     sh.disc = new T.CircleGeometry(0.26, 28); sh.ring = new T.RingGeometry(0.33, 0.41, 40); sh.torus = new T.TorusGeometry(0.27, 0.028, 8, 36); sh.plate = new T.CylinderGeometry(0.23, 0.25, 0.06, 20);
     sh.rail = new T.CylinderGeometry(0.014, 0.014, 1, 6); sh.grip = new T.BoxGeometry(0.34, 0.012, 0.035);
@@ -24,6 +25,7 @@
     const goldMat = (o) => new T.MeshBasicMaterial({ color: GOLD, transparent: true, opacity: o, depthWrite: false, blending: T.AdditiveBlending });
 
     const fig = FX.makeFigure(); fig.visible = false; world.add(fig);
+    const FIG = 1.3; const figScale = (k) => fig.scale.setScalar(k * FIG), fig2Scale = (k) => fig2.scale.setScalar(k * FIG);
     const TWC = 0x6FD3E6, fig2 = FX.makeFigure({ body: 0xC6E6EE, bodyE: 0x14313a, scarf: TWC, scarfE: 0x1d5560 }); fig2.visible = false; world.add(fig2);
     const shadow2 = new T.Mesh(FX.plane(), sh.dark); shadow2.rotation.x = -Math.PI / 2; shadow2.visible = false; world.add(shadow2);
     const shadow = new T.Mesh(FX.plane(), sh.dark); shadow.rotation.x = -Math.PI / 2; world.add(shadow);
@@ -36,7 +38,7 @@
 
     let hooks = {}, enabled = true, level = null, st = null, tiles = {}, slv = {}, seams = {}, seamPairs = [], seamA = 1;
     let ctr = new T.Vector3(), ext = [2, 2], rad = 3, az = 45, logical = 0, camAnim = null, walkS = null, win = null, hint = null, hl = null, disposed = false;
-    let twTile = null, twAnim = null, time = 0, last = 0, W_ = 1, H_ = 1, figTile = null, yaw = 0, landSq = 0, drag = null, ptr = null;
+    let lift = [0, 0], entry = null, camOff = 0, twTile = null, twAnim = null, time = 0, last = 0, W_ = 1, H_ = 1, figTile = null, yaw = 0, landSq = 0, drag = null, ptr = null;
     const worldDirs = (a) => ({ r: [Math.cos(a * D2R), -Math.sin(a * D2R)], f: [-Math.sin(a * D2R), -Math.cos(a * D2R)] });
 
     // ---------- build ----------
@@ -45,25 +47,43 @@
       for (const o of world.children.slice()) if (o.userData.lvl) { world.remove(o); o.traverse((c) => { if (c.material && !Object.values(sh).includes(c.material)) c.material.dispose(); }); }
       for (const k in seams) { scene.remove(seams[k].g); } tiles = {}; slv = {}; seams = {}; seamPairs = [];
     }
+    // One palette per chapter: tile faces (top, x-faces, z-faces), backdrop (top, bottom), glow behind the scene, sun, sky and bounce light.
+    const hex = (c) => { const k = new T.Color(c); return [k.r, k.g, k.b]; };
+    const mix = (a, b, t) => '#' + new T.Color(a).lerp(new T.Color(b), t).getHexString();
+    const P = (t, l, r, glow, bgDeep, bgLight) => ({ t, l, r, glow, top: bgDeep, bot: mix(bgDeep, bgLight, 0.22), sun: mix('#FFFFFF', t, 0.35), sky: mix('#FFFFFF', bgLight, 0.5), gnd: mix(bgDeep, r, 0.5) });
+    const PAL = {
+      1: P('#F2D3B3', '#D99A86', '#8E5E78', '#FFC857', '#3B2B4A', '#F7C9A0'),
+      2: P('#BFE8DC', '#6FB8B0', '#35747F', '#FF8A5B', '#10303D', '#CDEFE3'),
+      3: P('#C9B8F2', '#8B78C9', '#4E4690', '#FFB36B', '#1B1840', '#8C7BD0'),
+      4: P('#D7EBB0', '#8FBF7A', '#4C8466', '#FF7A8A', '#1D4A44', '#EAF3C2'),
+      5: P('#F5D9A0', '#D9955C', '#9A5648', '#3F8FA3', '#4E2A35', '#FBE7B8'),
+      6: P('#8FA8E8', '#5069B5', '#2A3877', '#FFD27A', '#0A0F2A', '#3E52A0'),
+      7: P('#E7EDF8', '#A5B6D6', '#5F6F96', '#6FE0FF', '#1C2146', '#AFC3E8'),
+    };
+    const geoCache = {}; const bevelFor = (p) => geoCache[p.t] || (geoCache[p.t] = FX.bevelGeo(0.05, { t: hex(p.t), x: hex(p.l), z: hex(p.r) }));
+    let pal = PAL[1];
+    const pilTex = (() => { const c = document.createElement('canvas'); c.width = 4; c.height = 64; const x = c.getContext('2d'), g = x.createLinearGradient(0, 64, 0, 0); g.addColorStop(0, 'rgba(255,255,255,.95)'); g.addColorStop(0.5, 'rgba(255,255,255,.3)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 4, 64); return new T.CanvasTexture(c); })();
+    const pilGeo = new T.CylinderGeometry(0.17, 0.2, 1.8, 14, 1, true);
+    const pillar = (col) => { const m = new T.Mesh(pilGeo, new T.MeshBasicMaterial({ map: pilTex, color: col, transparent: true, opacity: 0.5, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending })); m.position.y = 0.5 + 0.9; return m; };
     const PHD = new T.RingGeometry(0.2, 0.3, 4, 1), WARPC = ['#B58CFF', '#FF8FB1'];
     function buildTile(d, hue) {
       const t = { id: d.id, d, kind: d.kind, sl: d.slider, base: d.pos, off: [0, 0, 0], open: 0, openT: 0, press: 0, pressT: 0, sweep: 2, gone: 0, goneT: 0, g: new T.Group() };
       const glass = d.kind === 'gate';
-      t.mat = new T.MeshLambertMaterial({ color: glass ? GLASS : SLATE, vertexColors: true, emissive: new T.Color(hue).multiplyScalar(0.05), transparent: glass || d.kind === 'crumble' || d.kind === 'phase', opacity: glass ? 0.3 : 1, depthWrite: !glass });
+      t.mat = new T.MeshLambertMaterial({ color: glass ? GLASS : 0xffffff, vertexColors: true, emissive: new T.Color(hue).multiplyScalar(0.05), transparent: glass || d.kind === 'crumble' || d.kind === 'phase', opacity: glass ? 0.3 : 1, depthWrite: !glass });
       if (d.kind === 'phase') t.phc = new T.Color(d.ph ? '#FFC857' : '#6FD3E6');
       if (d.kind === 'crumble') { t.mat.color.lerp(new T.Color('#e8a66e'), 0.3); t.mat.emissive.lerp(new T.Color('#c8703a'), 0.1); }
-      t.body = new T.Mesh(bevel, t.mat); t.g.add(t.body);
+      t.body = new T.Mesh(bevelFor(pal), t.mat); t.g.add(t.body);
       const rimC = new T.Color(GOLD).lerp(new T.Color(hue), 0.35);
       t.rim = new T.LineLoop(sh.rim, new T.LineBasicMaterial({ color: rimC, transparent: true, opacity: glass ? 0.55 : 0.34 })); t.rim.position.y = 0.502; t.g.add(t.rim);
       const hc = new T.Color(hue).lerp(new T.Color(GOLD), 0.4);
       if (d.kind === 'goal') {
         t.ring = new T.Mesh(sh.torus, new T.MeshBasicMaterial({ color: GOLD })); t.ring.rotation.x = Math.PI / 2; t.ring.position.y = 0.53;
         t.disc = new T.Mesh(sh.disc, goldMat(0.15)); t.disc.rotation.x = -Math.PI / 2; t.disc.position.y = 0.515;
-        t.halo = FX.glowSprite(GOLD, 1.5, 0.4); t.halo.position.y = 0.9; t.g.add(t.ring, t.disc, t.halo);
+        t.halo = FX.glowSprite(GOLD, 1.5, 0.4); t.halo.position.y = 0.9; t.pil = pillar(GOLD); t.g.add(t.ring, t.disc, t.halo, t.pil);
       } else if (d.kind === 'tgoal') {
         t.ring = new T.Mesh(sh.torus, new T.MeshBasicMaterial({ color: TWC })); t.ring.rotation.x = Math.PI / 2; t.ring.position.y = 0.53;
         t.disc = new T.Mesh(sh.disc, new T.MeshBasicMaterial({ color: TWC, transparent: true, opacity: 0.15, depthWrite: false, blending: T.AdditiveBlending })); t.disc.rotation.x = -Math.PI / 2; t.disc.position.y = 0.515;
-        t.halo = FX.glowSprite(TWC, 1.5, 0.4); t.halo.position.y = 0.9; t.g.add(t.ring, t.disc, t.halo);
+        t.halo = FX.glowSprite(TWC, 1.5, 0.4); t.halo.position.y = 0.9; t.pil = pillar(TWC); t.g.add(t.ring, t.disc, t.halo, t.pil);
       } else if (d.kind === 'twin') {
         const m = new T.Mesh(sh.ring, new T.MeshBasicMaterial({ color: TWC, transparent: true, opacity: 0.35, depthWrite: false })); m.rotation.x = -Math.PI / 2; m.position.y = 0.512; m.scale.setScalar(0.8); t.g.add(m);
       } else if (d.kind === 'warp') {
@@ -109,7 +129,9 @@
       world.add(g);
     }
     s.setLevel = function (lv) {
-      clearWorld(); level = lv; const hue = lv.hue || '#E9C27A'; bg.material.uniforms.hue.value.set(hue);
+      clearWorld(); level = lv; pal = PAL[lv.ch || 1] || PAL[1]; const hue = pal.glow;
+      const U = bg.material.uniforms; U.hue.value.set(pal.glow); U.top.value.set(pal.top); U.bot.value.set(pal.bot);
+      hemi.color.set(pal.sky); hemi.groundColor.set(pal.gnd); sun.color.set(pal.sun); renderer.setClearColor(pal.top);
       for (const d of lv.tiles) tiles[d.id] = buildTile(d, hue);
       for (const sd of lv.sliders || []) { slv[sd.id] = { idx: sd.start || 0, cur: sd.positions[sd.start || 0].slice(), from: null, to: null, t0: 0 }; buildSliderTrack(sd, lv.tiles); }
       // bounding box over every tile at every slider position
@@ -125,10 +147,37 @@
         ext[0] = Math.max(ext[0], Math.abs(q[0] * b.u[0] + q[1] * b.u[1] + q[2] * b.u[2])); ext[1] = Math.max(ext[1], Math.abs(q[0] * b.v[0] + q[1] * b.v[1] + q[2] * b.v[2]));
         rad = Math.max(rad, Math.hypot(q[0], q[2]));
       }
-      logical = lv.cam || 0; az = W.camAz(logical); camAnim = null; walkS = win = hint = hl = null; seamA = 0; figOnTop(false); shadow.visible = true; twTile = null; twAnim = null; fig2.visible = false; fig2.scale.setScalar(1); onTop(fig2, false);
+      logical = lv.cam || 0; az = W.camAz(logical); camAnim = null; walkS = win = hint = hl = null; seamA = 0; figOnTop(false); shadow.visible = true; twTile = null; twAnim = null; fig2.visible = false; fig2Scale(1); onTop(fig2, false);
       arrow.visible = hlRing.visible = false; sp.n = 0; sparks.arr.alpha.fill(0);
       s.resize(); s.setState(W.initial(lv), false);
+      // entrance: tiles rise one after another from the start tile outwards, the camera swings in, the walker drops in last
+      entry = null; camOff = 0; cam.zoom = 1;
+      if (!RMOT && lv.tiles.length) {
+        const sp = (lv.tiles.find((x) => x.kind === 'start') || lv.tiles[0]).pos, ds = lv.tiles.map((x) => Math.hypot(x.pos[0] - sp[0], (x.pos[1] - sp[1]) * 1.4, x.pos[2] - sp[2])), mx = Math.max(1, ...ds);
+        lv.tiles.forEach((x, i) => { tiles[x.id].eDelay = 0.05 + 0.75 * ds[i] / mx; });
+        entry = { t0: performance.now(), dur: 2000, landed: false };
+        for (const k in tiles) { tiles[k].g.visible = false; } fig.visible = false; shadow.visible = false; fig2.visible = false; shadow2.visible = false;
+      }
     };
+    const eOut = (p) => 1 - Math.pow(1 - p, 3), eBack = (p) => { const c = 1.45; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); };
+    function entryApply(nowp) {
+      const el = s._freeze != null ? s._freeze : nowp - entry.t0;
+      for (const k in tiles) {
+        const t = tiles[k], p = clamp((el - t.eDelay * 1000) / 650, 0, 1), e = eBack(p);
+        if (t.kind !== 'crumble' || !(t.gone > 0.985)) t.g.visible = p > 0;
+        t.g.position.y -= (1 - e) * 2.6; t.g.scale.setScalar(Math.max(0.001, e));
+      }
+      const ck = clamp(el / 1500, 0, 1); camOff = -(1 - eOut(ck)) * 40; cam.zoom = 0.8 + 0.2 * eOut(ck);
+      const f = clamp((el - 1000) / 750, 0, 1);
+      if (f > 0) {
+        fig.visible = true; shadow.visible = true; const d = eOut(f);
+        fig.position.y += (1 - d) * 3.2 * (1 - 0.0); figScale(0.5 + 0.5 * eOut(f)); shadowAt(fig.position.y - (1 - d) * 3.2, 1 - d);
+        if (twTile) { fig2.visible = true; shadow2.visible = true; fig2.position.y += (1 - d) * 3.2; fig2Scale(0.5 + 0.5 * d); }
+        if (f >= 1 && !entry.landed) { entry.landed = true; landSq = 1; burst(fig.position.x, fig.position.y + 0.03, fig.position.z, 14, 0.7, 0.5, 0.6, true); hooks.entered && hooks.entered(); }
+      }
+      else { fig.visible = false; shadow.visible = false; fig2.visible = false; shadow2.visible = false; }
+      if (el > entry.dur) { entry = null; camOff = 0; cam.zoom = 1; for (const k in tiles) { tiles[k].g.scale.setScalar(1); } figScale(1); fig2Scale(1); }
+    }
 
     // ---------- state ----------
     const topOf = (id, v) => { const t = tiles[id]; return (v || new T.Vector3()).set(t.base[0] + 0.5 + t.off[0], t.base[1] + 1 + t.off[1], t.base[2] + 0.5 + t.off[2]); };
@@ -146,7 +195,7 @@
         if (drag && drag.sl === id) continue; v.idx = st.sl[id];
         if (animate) { v.from = v.cur.slice(); v.to = to.slice(); v.t0 = now; v.dur = RMOT ? 1 : 350; } else { v.cur = to.slice(); v.to = null; }
       }
-      if (!walkS) { figTile = st.tile; if (!win) { fig.visible = true; fig.scale.setScalar(1); shadow.visible = true; } topOf(figTile, fig.position); }
+      if (!walkS) { figTile = st.tile; if (!win) { fig.visible = true; figScale(1); shadow.visible = true; } topOf(figTile, fig.position); }
       if (st.tw) {
         if (twTile !== st.tw) {
           const to = topOf(st.tw, new T.Vector3());
@@ -154,7 +203,7 @@
           else { twAnim = null; fig2.position.copy(to); }
           twTile = st.tw;
         }
-        if (!win) { fig2.visible = true; fig2.scale.setScalar(1); }
+        if (!win) { fig2.visible = true; fig2Scale(1); }
       } else { twTile = null; twAnim = null; fig2.visible = false; shadow2.visible = false; }
       applyTiles(0);
     };
@@ -187,7 +236,7 @@
         } else if (t.kind === 'warp') {
           const p = 0.5 + 0.5 * Math.sin(time * 2.4 + (t.base[0] + t.base[2])); t.ring.rotation.z = time * 1.1; t.pring.scale.setScalar(0.82 + 0.1 * p); t.halo.material.opacity = 0.22 + 0.2 * p;
         } else if (t.kind === 'goal' || t.kind === 'tgoal') {
-          const p = 0.5 + 0.5 * Math.sin(time * 2.2); t.ring.rotation.z = time * 0.6; t.ring.scale.setScalar(1 + 0.05 * p); t.disc.material.opacity = 0.1 + 0.12 * p; t.halo.material.opacity = (win ? 0 : 0.32 + 0.16 * p);
+          const p = 0.5 + 0.5 * Math.sin(time * 2.2); t.ring.rotation.z = time * 0.6; t.ring.scale.setScalar(1 + 0.05 * p); t.disc.material.opacity = 0.1 + 0.12 * p; t.halo.material.opacity = (win ? 0 : 0.32 + 0.16 * p); if (t.pil) t.pil.material.opacity = win ? 0 : 0.34 + 0.2 * p;
         }
         if (t.sl) { const ok = hooks.canSlide ? hooks.canSlide(t.sl) : true; t.halo2.material.opacity = (ok ? 0.22 + 0.12 * Math.sin(time * 2.6) : 0.05); t.grip.children.forEach((m) => (m.material.opacity = ok ? 0.8 : 0.25)); }
       }
@@ -195,13 +244,14 @@
 
     // ---------- camera ----------
     function placeCam() {
-      const a = az * D2R, R = 60; cam.position.set(ctr.x + Math.sin(a) * COSE * R, ctr.y + SINE * R, ctr.z + Math.cos(a) * COSE * R); cam.lookAt(ctr); cam.updateMatrixWorld(); cam.updateProjectionMatrix();
+      const a = (az + camOff) * D2R, R = 60; cam.position.set(ctr.x + Math.sin(a) * COSE * R, ctr.y + SINE * R, ctr.z + Math.cos(a) * COSE * R); cam.lookAt(ctr); cam.updateMatrixWorld(); cam.updateProjectionMatrix();
     }
+    s.setLift = (fy, fx) => { lift = [fy || 0, fx || 0]; if (level) s.resize(); };
     s.resize = function () {
       const r = canvas.getBoundingClientRect(); W_ = Math.max(2, r.width || canvas.clientWidth || 300); H_ = Math.max(2, r.height || canvas.clientHeight || 300);
       renderer.setSize(W_, H_, false); const asp = W_ / H_;
-      const hh = Math.max(1.9, ext[1] * 1.1 + 0.45, (ext[0] * 1.08 + 0.4) / asp), hw = hh * asp;
-      cam.left = -hw; cam.right = hw; cam.top = hh; cam.bottom = -hh; bg.material.uniforms.asp.value = asp; placeCam();
+      const hh = Math.max(1.4, ext[1] * 0.92 + 0.4, (ext[0] * 1.02 + 0.5) / asp), hw = hh * asp;
+      cam.left = -hw; cam.right = hw; cam.top = hh; cam.bottom = -hh; if (lift[0] || lift[1]) cam.setViewOffset(W_, H_, lift[1] * W_, lift[0] * H_, W_, H_); else cam.clearViewOffset(); bg.material.uniforms.asp.value = asp; placeCam();
     };
     s.setCam = function (c, animate) {
       logical = mod(c, 4); const to = W.camAz(logical), d = mod(to - az + 180, 360) - 180;
@@ -232,7 +282,11 @@
         const mx = (vv.x + vw.x) / 2, my = (vv.y + vw.y) / 2;
         m.g.position.set(0, 0, 0).add(topOf(A.id, vv)).add(topOf(B.id, new T.Vector3())).multiplyScalar(0.5); m.g.quaternion.copy(cam.quaternion);
         topOf(A.id, vv).applyMatrix4(inv); topOf(B.id, vw).applyMatrix4(inv);
-        FX.seamUpdate(m.g, vv.x - mx, vv.y - my, vw.x - mx, vw.y - my, time, m.a);
+        if (m.fired === undefined) m.fired = !!entry;
+        if (m.want && settled && m.a > 0.55 && !m.fired) { m.fired = true; m.flash = 1; const pp = m.g.position; burst(pp.x, pp.y, pp.z, 26, 1.3, 0.5, 0.9, true); }
+        if (!m.want) m.fired = false;
+        m.flash = Math.max(0, (m.flash || 0) - dt * 2.0);
+        FX.seamUpdate(m.g, vv.x - mx, vv.y - my, vw.x - mx, vw.y - my, time, Math.min(1.6, m.a * (1 + 0.6 * (m.flash || 0))));
       }
     }
 
@@ -265,7 +319,7 @@
 
     // ---------- walking ----------
     // Frame pacing helpers: busy = something is moving (render at full rate); otherwise the game idles at ~30 fps. setScale lowers the render resolution on slow devices.
-    s.busy = () => !!(walkS || camAnim || win || drag || hint || twAnim || Object.values(slv).some((v) => v.to));
+    s.busy = () => !!(entry || walkS || camAnim || win || drag || hint || twAnim || Object.values(slv).some((v) => v.to));
     s.setScale = (v) => { renderer.setPixelRatio(Math.min(pr, v)); s.resize(); };
     s.pr = pr;
     s.teleport = function (id) {   // the walker was carried to another tile: puff of light at both ends, no glide
@@ -313,9 +367,9 @@
       const w = win; w.t += dt; const T_ = 2.5, k = clamp(w.t / T_, 0, 1); az = w.a0 + 90 * ease(k);
       const f = clamp((w.t - 0.25) / 1.4, 0, 1), g = w.goal && topOf(w.goal.id);
       if (w.goal) { w.goal.ring.scale.setScalar(1 + 1.2 * Math.sin(Math.PI * Math.min(1, w.t / 0.9))); w.goal.disc.material.opacity = 0.9 * (1 - k); w.goal.halo.material.opacity = 0.7 * (1 - k); w.goal.halo.scale.setScalar(1.5 + 2.5 * Math.min(1, w.t / 0.5)); }
-      if (g) { fig.position.set(g.x, g.y + ease(f) * 1.5, g.z); fig.scale.setScalar(1 - 0.9 * f * f); yaw += dt * (2 + 10 * f); fig.rotation.y = yaw; shadow.visible = false; if (f > 0 && f < 1) { w.burst += dt; while (w.burst > 0.03) { w.burst -= 0.03; burst(fig.position.x, fig.position.y + 0.3, fig.position.z, 2, 0.5, 0.9, 1.0, false); } } }
+      if (g) { fig.position.set(g.x, g.y + ease(f) * 1.5, g.z); figScale(1 - 0.9 * f * f); yaw += dt * (2 + 10 * f); fig.rotation.y = yaw; shadow.visible = false; if (f > 0 && f < 1) { w.burst += dt; while (w.burst > 0.03) { w.burst -= 0.03; burst(fig.position.x, fig.position.y + 0.3, fig.position.z, 2, 0.5, 0.9, 1.0, false); } } }
       if (f >= 1) fig.visible = false;
-      if (twTile && fig2.visible) { const q = topOf(twTile); fig2.position.set(q.x, q.y + ease(f) * 1.5, q.z); fig2.scale.setScalar(1 - 0.9 * f * f); shadow2.visible = false; if (f >= 1) fig2.visible = false; }
+      if (twTile && fig2.visible) { const q = topOf(twTile); fig2.position.set(q.x, q.y + ease(f) * 1.5, q.z); fig2Scale(1 - 0.9 * f * f); shadow2.visible = false; if (f >= 1) fig2.visible = false; }
       if (w.t >= T_) { win = null; logical = mod(logical + 1, 4); fig.visible = false; const d = w.onDone; d && d(); }
     }
 
@@ -327,7 +381,7 @@
       else if (drag && drag.tgt != null) az += (drag.tgt - az) * Math.min(1, dt * 14);
       for (const id in slv) { const v = slv[id]; if (v.to && !(drag && drag.sl === id)) { const k = clamp((nowp - v.t0) / v.dur, 0, 1), e = ease(k); v.cur = v.from.map((x, i) => lerp(x, v.to[i], e)); if (k >= 1) { v.cur = v.to; v.to = null; } } }
       applyTiles(dt); if (win) updateWin(dt);
-      updateWalk(dt); updateFigure(dt); updateTwin(dt); placeCam(); updateSeams(dt); updateFx(dt);
+      updateWalk(dt); updateFigure(dt); updateTwin(dt); if (entry) entryApply(nowp); placeCam(); updateSeams(dt); updateFx(dt);
       if (hl && tiles[hl]) { topOf(hl, hlRing.position); hlRing.position.y += 0.02; const p = Math.sin(time * 5); hlRing.scale.setScalar(1.05 + 0.1 * p); hlRing.material.opacity = 0.55 + 0.35 * p; }
       if (hint) {
         const k = (nowp - hint.t0) / 1500; if (k >= 1) { hint = null; arrow.visible = false; } else { arrow.position.set(ctr.x, ctr.y - 0.2, ctr.z); arrow.rotation.z = hint.dir * (k - 0.5) * 0.9 + az * D2R * 0; arrow.material.opacity = Math.sin(Math.PI * k) * 0.55; }
@@ -353,7 +407,7 @@
     }
     function down(e) {
       if (ptr) abortPtr(); // a lost pointerup (context menu, ctrl-click, leaving the window) must never lock the board
-      if (!enabled || s.isBusy() || !level || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      if (!enabled || entry || s.isBusy() || !level || (e.pointerType === 'mouse' && e.button !== 0)) return;
       const id = s.pick(e.clientX, e.clientY), t = id && tiles[id];
       ptr = { x: e.clientX, y: e.clientY, t0: performance.now(), id, mode: 'wait', az0: az, pid: e.pointerId, slider: t && t.sl && hooks.canSlide && hooks.canSlide(t.sl) ? t.sl : null, blocked: t && t.sl && hooks.canSlide && !hooks.canSlide(t.sl) ? t.sl : null };
       try { canvas.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ }
@@ -385,7 +439,7 @@
       }
     }
     function key(e) {
-      if (!enabled || s.isBusy() || !level) return; const k = e.key;
+      if (!enabled || entry || s.isBusy() || !level) return; const k = e.key;
       if (k === 'ArrowLeft' || k === 'ArrowRight') { const c = mod(logical + (k === 'ArrowLeft' ? 1 : -1), 4); s.setCam(c, true); hooks.onCam && hooks.onCam(c); e.preventDefault(); }
     }
     canvas.style.touchAction = 'none';

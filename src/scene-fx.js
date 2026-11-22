@@ -4,8 +4,9 @@
   let PLANE = null, GLOW = null;
   const plane = () => PLANE || (PLANE = new T.PlaneGeometry(1, 1));
 
-  // Rounded box 1x1x1 with vertex colours: top lighter, bottom darker.
-  function bevelGeo(b) {
+  // Rounded box 1x1x1 with vertex colours: three face hues (top, x-faces, z-faces) from a palette, darker toward the base for a hint of occlusion.
+  function bevelGeo(b, cols) {
+    cols = cols || { t: [1, 1, 1], x: [.7, .7, .7], z: [.5, .5, .5] };
     const g = new T.BoxGeometry(1, 1, 1, 3, 3, 3), p = g.attributes.position, n = g.attributes.normal, h = 0.5 - b;
     const col = new Float32Array(p.count * 3);
     for (let i = 0; i < p.count; i++) {
@@ -14,9 +15,9 @@
       const l = Math.hypot(d[0], d[1], d[2]), nn = [n.getX(i), n.getY(i), n.getZ(i)];
       if (l > 1e-6) for (let k = 0; k < 3; k++) nn[k] = d[k] / l;
       p.setXYZ(i, inn[0] + nn[0] * b, inn[1] + nn[1] * b, inn[2] + nn[2] * b); n.setXYZ(i, nn[0], nn[1], nn[2]);
-      const top = Math.max(0, nn[1]), bot = Math.max(0, -nn[1]);
-      let c = 0.74 + 0.26 * top - 0.3 * bot; if (top < 0.5) c *= 0.84 + 0.16 * (inn[1] + 0.5);
-      col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = c;
+      const wt = Math.max(0, nn[1]), wx = Math.abs(nn[0]), wz = Math.abs(nn[2]), bot = Math.max(0, -nn[1]), sw = wt + wx + wz + 1e-6;
+      const sh = (1 - 0.35 * bot) * (wt > 0.5 ? 1 : 0.8 + 0.2 * (inn[1] + 0.5));        // sides get darker toward the foot
+      for (let k = 0; k < 3; k++) col[i * 3 + k] = (wt * cols.t[k] + wx * cols.x[k] + wz * cols.z[k]) / sw * sh;
     }
     g.setAttribute('color', new T.BufferAttribute(col, 3)); return g;
   }
@@ -76,11 +77,12 @@
 
   function makeBackground(hue) {
     const m = new T.ShaderMaterial({
-      depthTest: false, depthWrite: false, uniforms: { hue: { value: new T.Color(hue) }, asp: { value: 1 } },
+      depthTest: false, depthWrite: false, uniforms: { hue: { value: new T.Color(hue) }, top: { value: new T.Color('#2A2540') }, bot: { value: new T.Color('#3D2F4F') }, asp: { value: 1 } },
       vertexShader: 'varying vec2 vU;void main(){vU=uv;gl_Position=vec4(position.xy*2.,1.,1.);}',
-      fragmentShader: 'varying vec2 vU;uniform vec3 hue;uniform float asp;float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}' +
-        'void main(){vec3 a=vec3(.043,.051,.078),b=vec3(.102,.118,.169);vec3 c=mix(b,a,smoothstep(0.,1.,vU.y));' +
-        'vec2 q=(vU-vec2(.5,.52))*vec2(asp,1.);c+=hue*.085*smoothstep(.75,0.,length(q));c*=1.-.4*smoothstep(.35,1.05,length((vU-.5)*vec2(1.,1.15)));c+=(h(gl_FragCoord.xy)-.5)*.008;gl_FragColor=vec4(c,1.);}',
+      fragmentShader: 'varying vec2 vU;uniform vec3 hue,top,bot;uniform float asp;float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}' +
+        'void main(){vec3 c=mix(bot,top,smoothstep(0.,1.,vU.y));vec2 q=(vU-vec2(.5,.5))*vec2(asp,1.);' +
+        'c+=hue*.20*smoothstep(.8,0.,length(q*vec2(.9,1.15)));c+=hue*.07*smoothstep(.22,0.,abs(vU.y-.42))*smoothstep(1.,.2,abs(q.x));' +   // glow behind the scene + a faint horizon band
+        'c*=1.-.34*smoothstep(.4,1.1,length((vU-.5)*vec2(1.,1.1)));c+=(h(gl_FragCoord.xy)-.5)*.010;gl_FragColor=vec4(c,1.);}',
     });
     const mesh = new T.Mesh(plane(), m); mesh.renderOrder = -10; mesh.frustumCulled = false; return mesh;
   }

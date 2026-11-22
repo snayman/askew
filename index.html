@@ -62,9 +62,20 @@
 
   <!-- splash -->
   <section class="screen is-active" data-screen="splash" aria-label="Askew">
-    <div class="splash">
-      <svg class="splash-mark" aria-hidden="true"><use href="#logo"/></svg>
-      <h1 class="wordmark big">Askew</h1>
+    <div class="splash" id="splash">
+      <div class="intro-a"><b class="rbw">RBW</b><small class="rbw-s" data-i18n="splash.presents"></small></div>
+      <div class="intro-b">
+        <svg class="mk" viewBox="0 0 100 100" aria-hidden="true">
+          <g class="mk-a" stroke-linejoin="round" stroke-width="1.6" stroke="#C9CDD8">
+            <path d="M30 18 L54 30 L30 42 L6 30Z" fill="#2A3350" stroke-opacity=".7"/><path d="M6 30 L30 42 L30 54 L6 42Z" fill="#12172A" stroke-opacity=".4"/><path d="M30 42 L54 30 L54 42 L30 54Z" fill="#0E1322" stroke-opacity=".4"/></g>
+          <g class="mk-b" stroke-linejoin="round" stroke-width="1.6" stroke="#C9CDD8">
+            <path d="M66 46 L90 58 L66 70 L42 58Z" fill="#2A3350" stroke-opacity=".7"/><path d="M42 58 L66 70 L66 82 L42 70Z" fill="#12172A" stroke-opacity=".4"/><path d="M66 70 L90 58 L90 70 L66 82Z" fill="#0E1322" stroke-opacity=".4"/></g>
+          <path class="mk-p" pathLength="1" d="M30 30 L56 46 L66 58" fill="none" stroke="url(#g-gold)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle class="mk-r" cx="30" cy="30" r="5" fill="#0B0D14" stroke="#F6D898" stroke-width="2.4"/><circle class="mk-d" cx="66" cy="58" r="4.2" fill="#F6D898"/>
+        </svg>
+        <h1 class="wordmark big word"><span>A</span><span>s</span><span>k</span><span>e</span><span>w</span></h1>
+        <p class="splash-tag" data-i18n="app.tagline"></p>
+      </div>
       <div class="loadline"><i></i></div>
     </div>
   </section>
