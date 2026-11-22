@@ -145,3 +145,5 @@ input { user-select: text; -webkit-user-select: text; font: inherit; color: inhe
 .lv.pro .lv-lock { color: var(--gold); }
 .modal { grid-template-columns: minmax(0, 1fr); } .modal-card { min-width: 0; margin: 0 auto; } #b-daily span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 15px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; transition-delay: 0s !important; scroll-behavior: auto !important; } }
+/* the menu already has the 3D scene as its hero; the mark lives on the splash only, a bit larger */
+.menu-mark { display: none; } .splash-mark { width: 96px; height: 96px; }
