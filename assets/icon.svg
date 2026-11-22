@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="38%" r="75%"><stop offset="0" stop-color="#1B2133"/><stop offset="1" stop-color="#0B0D14"/></radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F6D898"/><stop offset="1" stop-color="#D9A859"/></linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <g stroke-linejoin="round" transform="translate(512 512) scale(1.2) translate(-512 -462)">
+    <!-- tile B (lower right), drawn first: sits behind -->
+    <path d="M662 414 L872 535 L662 656 L452 535Z" fill="#242B40" stroke="#F3EFE7" stroke-opacity=".6" stroke-width="7"/>
+    <path d="M452 535 L662 656 V716 L452 595Z" fill="#141927" stroke="#F3EFE7" stroke-opacity=".3" stroke-width="7"/>
+    <path d="M872 535 V595 L662 716 V656Z" fill="#0F131F" stroke="#F3EFE7" stroke-opacity=".3" stroke-width="7"/>
+    <!-- tile A (upper left) -->
+    <path d="M362 241 L572 362 L362 483 L152 362Z" fill="#2A3248" stroke="#F3EFE7" stroke-opacity=".75" stroke-width="7"/>
+    <path d="M152 362 L362 483 V543 L152 422Z" fill="#171C2C" stroke="#F3EFE7" stroke-opacity=".35" stroke-width="7"/>
+    <path d="M572 362 V422 L362 543 V483Z" fill="#11151F" stroke="#F3EFE7" stroke-opacity=".35" stroke-width="7"/>
+    <!-- path: A -> bridge -> B, closing back toward A's start through the impossible link -->
+    <g fill="none" stroke="url(#gold)" stroke-width="28" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M257 302 L362 362 L467 422 L557 474 L662 535 L767 474"/>
+    </g>
+    <circle cx="257" cy="302" r="26" fill="#0B0D14" stroke="#F6D898" stroke-width="12"/>
+    <circle cx="767" cy="474" r="26" fill="#F6D898"/>
+  </g>
+</svg>

@@ -24,6 +24,8 @@
     const goldMat = (o) => new T.MeshBasicMaterial({ color: GOLD, transparent: true, opacity: o, depthWrite: false, blending: T.AdditiveBlending });
 
     const fig = FX.makeFigure(); fig.visible = false; world.add(fig);
+    const TWC = 0x6FD3E6, fig2 = FX.makeFigure({ body: 0xC6E6EE, bodyE: 0x14313a, scarf: TWC, scarfE: 0x1d5560 }); fig2.visible = false; world.add(fig2);
+    const shadow2 = new T.Mesh(FX.plane(), sh.dark); shadow2.rotation.x = -Math.PI / 2; shadow2.visible = false; world.add(shadow2);
     const shadow = new T.Mesh(FX.plane(), sh.dark); shadow.rotation.x = -Math.PI / 2; world.add(shadow);
     const hlRing = new T.Mesh(sh.ring, goldMat(0)); hlRing.rotation.x = -Math.PI / 2; hlRing.visible = false; world.add(hlRing);
     const arrow = new T.Mesh(FX.plane(), new T.MeshBasicMaterial({ map: FX.arrowTex(), transparent: true, opacity: 0, depthTest: false, depthWrite: false, blending: T.AdditiveBlending }));
@@ -34,7 +36,7 @@
 
     let hooks = {}, enabled = true, level = null, st = null, tiles = {}, slv = {}, seams = {}, seamPairs = [], seamA = 1;
     let ctr = new T.Vector3(), ext = [2, 2], rad = 3, az = 45, logical = 0, camAnim = null, walkS = null, win = null, hint = null, hl = null, disposed = false;
-    let time = 0, last = 0, W_ = 1, H_ = 1, figTile = null, yaw = 0, landSq = 0, drag = null, ptr = null;
+    let twTile = null, twAnim = null, time = 0, last = 0, W_ = 1, H_ = 1, figTile = null, yaw = 0, landSq = 0, drag = null, ptr = null;
     const worldDirs = (a) => ({ r: [Math.cos(a * D2R), -Math.sin(a * D2R)], f: [-Math.sin(a * D2R), -Math.cos(a * D2R)] });
 
     // ---------- build ----------
@@ -43,7 +45,7 @@
       for (const o of world.children.slice()) if (o.userData.lvl) { world.remove(o); o.traverse((c) => { if (c.material && !Object.values(sh).includes(c.material)) c.material.dispose(); }); }
       for (const k in seams) { scene.remove(seams[k].g); } tiles = {}; slv = {}; seams = {}; seamPairs = [];
     }
-    const PHD = new T.RingGeometry(0.2, 0.3, 4, 1);
+    const PHD = new T.RingGeometry(0.2, 0.3, 4, 1), WARPC = ['#B58CFF', '#FF8FB1'];
     function buildTile(d, hue) {
       const t = { id: d.id, d, kind: d.kind, sl: d.slider, base: d.pos, off: [0, 0, 0], open: 0, openT: 0, press: 0, pressT: 0, sweep: 2, gone: 0, goneT: 0, g: new T.Group() };
       const glass = d.kind === 'gate';
@@ -58,6 +60,17 @@
         t.ring = new T.Mesh(sh.torus, new T.MeshBasicMaterial({ color: GOLD })); t.ring.rotation.x = Math.PI / 2; t.ring.position.y = 0.53;
         t.disc = new T.Mesh(sh.disc, goldMat(0.15)); t.disc.rotation.x = -Math.PI / 2; t.disc.position.y = 0.515;
         t.halo = FX.glowSprite(GOLD, 1.5, 0.4); t.halo.position.y = 0.9; t.g.add(t.ring, t.disc, t.halo);
+      } else if (d.kind === 'tgoal') {
+        t.ring = new T.Mesh(sh.torus, new T.MeshBasicMaterial({ color: TWC })); t.ring.rotation.x = Math.PI / 2; t.ring.position.y = 0.53;
+        t.disc = new T.Mesh(sh.disc, new T.MeshBasicMaterial({ color: TWC, transparent: true, opacity: 0.15, depthWrite: false, blending: T.AdditiveBlending })); t.disc.rotation.x = -Math.PI / 2; t.disc.position.y = 0.515;
+        t.halo = FX.glowSprite(TWC, 1.5, 0.4); t.halo.position.y = 0.9; t.g.add(t.ring, t.disc, t.halo);
+      } else if (d.kind === 'twin') {
+        const m = new T.Mesh(sh.ring, new T.MeshBasicMaterial({ color: TWC, transparent: true, opacity: 0.35, depthWrite: false })); m.rotation.x = -Math.PI / 2; m.position.y = 0.512; m.scale.setScalar(0.8); t.g.add(m);
+      } else if (d.kind === 'warp') {
+        const wc = new T.Color(WARPC[d.wc || 0]); t.wcol = wc;
+        t.pring = new T.Mesh(sh.ring, new T.MeshBasicMaterial({ color: wc, transparent: true, opacity: 0.85, side: T.DoubleSide })); t.pring.rotation.x = -Math.PI / 2; t.pring.position.y = 0.512; t.pring.scale.setScalar(0.9);
+        t.ring = new T.Mesh(PHD, new T.MeshBasicMaterial({ color: wc, transparent: true, opacity: 0.9, side: T.DoubleSide })); t.ring.rotation.x = -Math.PI / 2; t.ring.position.y = 0.516; t.ring.scale.setScalar(1.15);
+        t.halo = FX.glowSprite(wc, 1.2, 0.35); t.halo.position.y = 0.7; t.mat.emissive.copy(wc).multiplyScalar(0.12); t.g.add(t.pring, t.ring, t.halo);
       } else if (d.kind === 'switch' || d.kind === 'toggle') {
         t.plate = new T.Mesh(sh.plate, new T.MeshLambertMaterial({ color: 0x2c3345, emissive: hc, emissiveIntensity: 0.15 })); t.plate.position.y = 0.53;
         t.pring = new T.Mesh(sh.ring, goldMat(0.3)); t.pring.scale.setScalar(0.85); t.pring.rotation.x = -Math.PI / 2; t.pring.position.y = 0.512;
@@ -112,7 +125,7 @@
         ext[0] = Math.max(ext[0], Math.abs(q[0] * b.u[0] + q[1] * b.u[1] + q[2] * b.u[2])); ext[1] = Math.max(ext[1], Math.abs(q[0] * b.v[0] + q[1] * b.v[1] + q[2] * b.v[2]));
         rad = Math.max(rad, Math.hypot(q[0], q[2]));
       }
-      logical = lv.cam || 0; az = W.camAz(logical); camAnim = null; walkS = win = hint = hl = null; seamA = 0; figOnTop(false); shadow.visible = true;
+      logical = lv.cam || 0; az = W.camAz(logical); camAnim = null; walkS = win = hint = hl = null; seamA = 0; figOnTop(false); shadow.visible = true; twTile = null; twAnim = null; fig2.visible = false; fig2.scale.setScalar(1); onTop(fig2, false);
       arrow.visible = hlRing.visible = false; sp.n = 0; sparks.arr.alpha.fill(0);
       s.resize(); s.setState(W.initial(lv), false);
     };
@@ -134,8 +147,25 @@
         if (animate) { v.from = v.cur.slice(); v.to = to.slice(); v.t0 = now; v.dur = RMOT ? 1 : 350; } else { v.cur = to.slice(); v.to = null; }
       }
       if (!walkS) { figTile = st.tile; if (!win) { fig.visible = true; fig.scale.setScalar(1); shadow.visible = true; } topOf(figTile, fig.position); }
+      if (st.tw) {
+        if (twTile !== st.tw) {
+          const to = topOf(st.tw, new T.Vector3());
+          if (animate && twTile && fig2.visible) { const from = fig2.position.clone(), dd = to.clone().sub(from); twAnim = { from, to, t: 0, seam: !(Math.abs(dd.y) < 0.01 && Math.abs(Math.abs(dd.x) + Math.abs(dd.z) - 1) < 0.01) }; fig2.rotation.y = Math.atan2(dd.x, dd.z); onTop(fig2, twAnim.seam); }
+          else { twAnim = null; fig2.position.copy(to); }
+          twTile = st.tw;
+        }
+        if (!win) { fig2.visible = true; fig2.scale.setScalar(1); }
+      } else { twTile = null; twAnim = null; fig2.visible = false; shadow2.visible = false; }
       applyTiles(0);
     };
+    function updateTwin(dt) {
+      if (!fig2.visible || !twTile) { shadow2.visible = false; return; }
+      const a = twAnim; let arc = 0;
+      if (a) { a.t = Math.min(1, a.t + dt / (a.seam ? 0.45 : 0.26)); const e = a.t * a.t * (3 - 2 * a.t); fig2.position.lerpVectors(a.from, a.to, e); arc = a.seam ? 0 : Math.sin(Math.PI * a.t); fig2.position.y += arc * 0.24; if (a.t >= 1) { onTop(fig2, false); burst(a.to.x, a.to.y + 0.03, a.to.z, 5, 0.4, 0.3, 0.45, true); twAnim = null; } }
+      else if (!win) topOf(twTile, fig2.position);
+      shadow2.visible = !(a && a.seam); shadow2.position.set(fig2.position.x, topOf(twTile, new T.Vector3()).y + 0.006 - (a ? 0 : 0), fig2.position.z); if (a) shadow2.position.y = lerp(a.from.y, a.to.y, a.t) + 0.006; shadow2.scale.setScalar(0.62 * (1 - 0.3 * arc));
+      const u = fig2.userData; u.body.scale.set(1, 1 + 0.02 * Math.sin(time * 2.2 + 1.3), 1); u.head.position.y = 0.39 + 0.004 * Math.sin(time * 2.2 + 2); u.tail.rotation.z = 0.25 * Math.sin(time * 3 + 1);
+    }
     function applyTiles(dt) {
       for (const k in tiles) {
         const t = tiles[k];
@@ -154,7 +184,9 @@
         } else if (t.kind === 'crumble') {
           t.gone += (t.goneT - t.gone) * Math.min(1, dt * 4.5); const gn = t.gone; t.g.visible = gn < 0.985;
           t.g.position.y -= gn * 0.7; t.mat.opacity = 1 - gn; t.rim.material.opacity = 0.34 * (1 - gn); t.cracks.material.opacity = 0.85 * (1 - gn);
-        } else if (t.kind === 'goal') {
+        } else if (t.kind === 'warp') {
+          const p = 0.5 + 0.5 * Math.sin(time * 2.4 + (t.base[0] + t.base[2])); t.ring.rotation.z = time * 1.1; t.pring.scale.setScalar(0.82 + 0.1 * p); t.halo.material.opacity = 0.22 + 0.2 * p;
+        } else if (t.kind === 'goal' || t.kind === 'tgoal') {
           const p = 0.5 + 0.5 * Math.sin(time * 2.2); t.ring.rotation.z = time * 0.6; t.ring.scale.setScalar(1 + 0.05 * p); t.disc.material.opacity = 0.1 + 0.12 * p; t.halo.material.opacity = (win ? 0 : 0.32 + 0.16 * p);
         }
         if (t.sl) { const ok = hooks.canSlide ? hooks.canSlide(t.sl) : true; t.halo2.material.opacity = (ok ? 0.22 + 0.12 * Math.sin(time * 2.6) : 0.05); t.grip.children.forEach((m) => (m.material.opacity = ok ? 0.8 : 0.25)); }
@@ -232,11 +264,19 @@
     }
 
     // ---------- walking ----------
+    // Frame pacing helpers: busy = something is moving (render at full rate); otherwise the game idles at ~30 fps. setScale lowers the render resolution on slow devices.
+    s.busy = () => !!(walkS || camAnim || win || drag || hint || twAnim || Object.values(slv).some((v) => v.to));
+    s.setScale = (v) => { renderer.setPixelRatio(Math.min(pr, v)); s.resize(); };
+    s.pr = pr;
+    s.teleport = function (id) {   // the walker was carried to another tile: puff of light at both ends, no glide
+      const a = fig.position.clone(), b = topOf(id, new T.Vector3()); burst(a.x, a.y + 0.2, a.z, 16, 0.9, 0.9, 0.7, false); fig.position.copy(b); figTile = id; landSq = 1; burst(b.x, b.y + 0.2, b.z, 16, 0.9, 0.9, 0.7, false);
+    };
     s.walk = function (path, onStep, onDone) {
       if (!path || !path.length) { onDone && onDone(); return; }
       walkS = { path: path.slice(), i: -1, onStep, onDone }; nextHop();
     };
-    function figOnTop(on) { fig.traverse((o) => { if (o.material) { (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => { m.depthTest = !on; }); o.renderOrder = on ? 50 : 0; } }); }
+    function figOnTop(on) { onTop(fig, on); }
+    function onTop(f, on) { f.traverse((o) => { if (o.material) { (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => { m.depthTest = !on; }); o.renderOrder = on ? 50 : 0; } }); }
     function nextHop() {
       const w = walkS; w.i++;
       if (w.i >= w.path.length) { const d = w.onDone; walkS = null; d && d(); return; }
@@ -275,6 +315,7 @@
       if (w.goal) { w.goal.ring.scale.setScalar(1 + 1.2 * Math.sin(Math.PI * Math.min(1, w.t / 0.9))); w.goal.disc.material.opacity = 0.9 * (1 - k); w.goal.halo.material.opacity = 0.7 * (1 - k); w.goal.halo.scale.setScalar(1.5 + 2.5 * Math.min(1, w.t / 0.5)); }
       if (g) { fig.position.set(g.x, g.y + ease(f) * 1.5, g.z); fig.scale.setScalar(1 - 0.9 * f * f); yaw += dt * (2 + 10 * f); fig.rotation.y = yaw; shadow.visible = false; if (f > 0 && f < 1) { w.burst += dt; while (w.burst > 0.03) { w.burst -= 0.03; burst(fig.position.x, fig.position.y + 0.3, fig.position.z, 2, 0.5, 0.9, 1.0, false); } } }
       if (f >= 1) fig.visible = false;
+      if (twTile && fig2.visible) { const q = topOf(twTile); fig2.position.set(q.x, q.y + ease(f) * 1.5, q.z); fig2.scale.setScalar(1 - 0.9 * f * f); shadow2.visible = false; if (f >= 1) fig2.visible = false; }
       if (w.t >= T_) { win = null; logical = mod(logical + 1, 4); fig.visible = false; const d = w.onDone; d && d(); }
     }
 
@@ -286,7 +327,7 @@
       else if (drag && drag.tgt != null) az += (drag.tgt - az) * Math.min(1, dt * 14);
       for (const id in slv) { const v = slv[id]; if (v.to && !(drag && drag.sl === id)) { const k = clamp((nowp - v.t0) / v.dur, 0, 1), e = ease(k); v.cur = v.from.map((x, i) => lerp(x, v.to[i], e)); if (k >= 1) { v.cur = v.to; v.to = null; } } }
       applyTiles(dt); if (win) updateWin(dt);
-      updateWalk(dt); updateFigure(dt); placeCam(); updateSeams(dt); updateFx(dt);
+      updateWalk(dt); updateFigure(dt); updateTwin(dt); placeCam(); updateSeams(dt); updateFx(dt);
       if (hl && tiles[hl]) { topOf(hl, hlRing.position); hlRing.position.y += 0.02; const p = Math.sin(time * 5); hlRing.scale.setScalar(1.05 + 0.1 * p); hlRing.material.opacity = 0.55 + 0.35 * p; }
       if (hint) {
         const k = (nowp - hint.t0) / 1500; if (k >= 1) { hint = null; arrow.visible = false; } else { arrow.position.set(ctr.x, ctr.y - 0.2, ctr.z); arrow.rotation.z = hint.dir * (k - 0.5) * 0.9 + az * D2R * 0; arrow.material.opacity = Math.sin(Math.PI * k) * 0.55; }

@@ -8,11 +8,11 @@
 //
 // level = {
 //   id, name:{ru,en}, hint:{ru,en}, theme:{ hue:'#rrggbb' accent },
-//   tiles:[{ id, pos:[x,y,z], kind:'floor'|'start'|'goal'|'switch'|'gate'|'crumble'|'phase'|'toggle', sw?:'s1' (switch id for switch/toggle/gate), inv?:true (gate that is OPEN until its switch is flipped; a toggle flips it back and forth), ph?:0|1 (phase tile: exists only while cam%2 === ph), slider?:'k1' }],
+//   tiles:[{ id, pos:[x,y,z], kind:'floor'|'start'|'goal'|'switch'|'gate'|'crumble'|'phase'|'toggle'|'warp'|'twin'|'tgoal', pair?:'id' (warp: stepping on it carries you to its pair; wc? colour index), twin = where the mirror twin starts, tgoal = where it must end (the twin copies every step you take, mirrored left-right ON SCREEN; it stays put if it cannot), sw?:'s1' (switch id for switch/toggle/gate), inv?:true (gate that is OPEN until its switch is flipped; a toggle flips it back and forth), ph?:0|1 (phase tile: exists only while cam%2 === ph), slider?:'k1' }],
 //   sliders:[{ id, positions:[[dx,dy,dz],...], start:0 }],     // a slider moves ALL its tiles by the chosen offset
 //   cam:0                                                     // starting camera
 // }
-// state = { tile:'id', cam:0..3, sw:{ s1:true }, sl:{ k1:0 }, gone:{ tileId:true } }   (gone = crumbled tiles)
+// state = { tile:'id', tw?:'id' (twin tile), cam:0..3, sw:{ s1:true }, sl:{ k1:0 }, gone:{ tileId:true } }   (gone = crumbled tiles)
 (function (root) {
   const D2R = Math.PI / 180, EL = 35.264, CAMS = 4, EPS = 0.02;
   const camAz = (c) => 45 + 90 * c;
@@ -33,7 +33,9 @@
   function initial(level) {
     const start = level.tiles.find((t) => t.kind === 'start');
     const sl = {}; for (const s of level.sliders || []) sl[s.id] = s.start || 0;
-    return { tile: start.id, cam: level.cam || 0, sw: {}, sl, gone: {} };
+    const tw = level.tiles.find((t) => t.kind === 'twin'), st = { tile: start.id, cam: level.cam || 0, sw: {}, sl, gone: {} };
+    if (tw) st.tw = tw.id;
+    return st;
   }
   // Actual cell of a tile in a state (slider offsets applied).
   function cell(level, tile, st) {
@@ -43,7 +45,7 @@
   }
   // gate: open once its switch is pressed. crumble: gone for good once the walker steps off it.
 // phase: a ghost tile that exists only from two opposite sides (cam%2 === ph); the tile the walker stands on never vanishes.
-const active = (tile, st) => (tile.kind === 'gate' ? (!!st.sw[tile.sw]) !== !!tile.inv : tile.kind === 'crumble' ? !(st.gone && st.gone[tile.id]) : tile.kind === 'phase' ? (((st.cam || 0) % 2) === tile.ph || tile.id === st.tile) : true);
+const active = (tile, st) => (tile.kind === 'gate' ? (!!st.sw[tile.sw]) !== !!tile.inv : tile.kind === 'crumble' ? !(st.gone && st.gone[tile.id]) : tile.kind === 'phase' ? (((st.cam || 0) % 2) === tile.ph || tile.id === st.tile || tile.id === st.tw) : true);
   // Screen position (x right, y up, in cell units) of the walking point (centre of the top face) at camera c.
   function screen(p, c) { const b = bases[c], P = [p[0] + 0.5, p[1] + 1, p[2] + 0.5]; return [dot(P, b.u), dot(P, b.v)]; }
   // Is the top face of `tile` fully in view at camera c (nothing in front of it)? Rays from a 3x3 grid on the face towards the camera.
@@ -76,7 +78,7 @@ const active = (tile, st) => (tile.kind === 'gate' ? (!!st.sw[tile.sw]) !== !!ti
   }
   function neighbors(level, st, c = st.cam) {
     const a = byId(level)[st.tile];
-    return level.tiles.filter((b) => connected(level, a, b, st, c)).map((b) => b.id);
+    return level.tiles.filter((b) => b.id !== st.tw && connected(level, a, b, st, c)).map((b) => b.id);
   }
   // Pairs that are connected ONLY by perspective (not same-height neighbours) — used to draw the glowing seams.
   function visualPairs(level, st, c = st.cam) {
@@ -89,18 +91,28 @@ const active = (tile, st) => (tile.kind === 'gate' ? (!!st.sw[tile.sw]) !== !!ti
     }
     return out;
   }
+  function touch(n, t) { if (t.kind === 'switch') n.sw[t.sw] = true; else if (t.kind === 'toggle') { if (n.sw[t.sw]) delete n.sw[t.sw]; else n.sw[t.sw] = true; } } // toggle: every visit flips the lever
   function step(level, st, toId) {
-    const t = byId(level)[toId], from = byId(level)[st.tile], n = { tile: toId, cam: st.cam, sw: Object.assign({}, st.sw), sl: Object.assign({}, st.sl), gone: Object.assign({}, st.gone) };
+    const B = byId(level), t = B[toId], from = B[st.tile], n = { tile: toId, cam: st.cam, sw: Object.assign({}, st.sw), sl: Object.assign({}, st.sl), gone: Object.assign({}, st.gone) };
+    if (st.tw) n.tw = st.tw;
     if (from.kind === 'crumble') n.gone[from.id] = true;
-    if (t.kind === 'switch') n.sw[t.sw] = true;
-    else if (t.kind === 'toggle') { if (n.sw[t.sw]) delete n.sw[t.sw]; else n.sw[t.sw] = true; } // toggle: every visit flips the lever
+    touch(n, t);
+    if (t.kind === 'warp' && t.pair && B[t.pair]) n.tile = t.pair;      // carried to the other end; arriving does not trigger it again
+    if (st.tw) {                                                        // the twin mirrors the move on screen (left-right), or stays if it cannot
+      const c = st.cam, a = screen(cell(level, from, st), c), b = screen(cell(level, t, st), c), tw0 = B[st.tw], s0 = screen(cell(level, tw0, st), c), dx = b[0] - a[0], dy = b[1] - a[1];
+      for (const q of level.tiles) {
+        if (q.id === n.tile || !connected(level, tw0, q, n, c)) continue;
+        const s1 = screen(cell(level, q, st), c);
+        if (Math.abs(s1[0] - s0[0] + dx) < EPS && Math.abs(s1[1] - s0[1] - dy) < EPS) { if (tw0.kind === 'crumble') n.gone[tw0.id] = true; n.tw = q.id; touch(n, q); break; }
+      }
+    }
     return n;
   }
   const rotate = (st, dir) => Object.assign({}, st, { cam: (st.cam + dir + CAMS) % CAMS });
   function canSlide(level, st, id) { return byId(level)[st.tile].slider !== id; }
   function slide(level, st, id, idx) { return Object.assign({}, st, { sl: Object.assign({}, st.sl, { [id]: idx }) }); }
-  const solved = (level, st) => byId(level)[st.tile].kind === 'goal';
-  const key = (st) => [st.tile, st.cam, Object.keys(st.sw).sort().join(','), Object.keys(st.sl).sort().map((k) => k + st.sl[k]).join(','), Object.keys(st.gone || {}).sort().join(',')].join('|');
+  const solved = (level, st) => byId(level)[st.tile].kind === 'goal' && (!st.tw || byId(level)[st.tw].kind === 'tgoal');
+  const key = (st) => [st.tile, st.tw || '', st.cam, Object.keys(st.sw).sort().join(','), Object.keys(st.sl).sort().map((k) => k + st.sl[k]).join(','), Object.keys(st.gone || {}).sort().join(',')].join('|');
 
   // Breadth-first solver over (tile, camera, switches, sliders). Returns { len, actions } or null.
   // actions: {t:'rot',dir} | {t:'step',to} | {t:'slide',id,pos}.

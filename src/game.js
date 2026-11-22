@@ -4,9 +4,9 @@
   const $ = UI.$, t = UI.t, LV = W.LEVELS, KEY = 'walk.v1', pick = (o) => V.i18n.pick(o);
 
   // ---------- save ----------
-  const defSave = () => ({ v: 1, solved: {}, tut: {}, curs: {}, last: '', daily: null, lic: '', streak: { n: 0, last: 0 }, set: { lang: /^ru|^uk|^be/i.test(navigator.language || 'ru') ? 'ru' : 'en', sound: true, music: true, haptics: true } });
+  const defSave = () => ({ v: 1, solved: {}, tut: {}, curs: {}, last: '', daily: null, owned: false, hu: {}, set: { lang: /^ru|^uk|^be/i.test(navigator.language || 'ru') ? 'ru' : 'en', sound: true, music: true, haptics: true } });
   let save = defSave();
-  try { const r = JSON.parse(localStorage.getItem(KEY) || 'null'); if (r && r.v === 1) { const d = defSave(); save = { v: 1, solved: r.solved || {}, tut: r.tut || {}, curs: r.curs || (r.cur && r.cur.id ? { [r.cur.id]: r.cur } : {}), last: r.last || (r.cur && r.cur.id) || '', daily: r.daily || null, lic: r.lic || '', streak: r.streak || { n: 0, last: 0 }, set: Object.assign(d.set, r.set || {}) }; } } catch (e) { /* private mode */ }
+  try { const r = JSON.parse(localStorage.getItem(KEY) || 'null'); if (r && r.v === 1) { const d = defSave(); save = { v: 1, solved: r.solved || {}, tut: r.tut || {}, curs: r.curs || (r.cur && r.cur.id ? { [r.cur.id]: r.cur } : {}), last: r.last || (r.cur && r.cur.id) || '', daily: r.daily || null, owned: !!r.owned, hu: r.hu || {}, set: Object.assign(d.set, r.set || {}) }; } } catch (e) { /* private mode */ }
   const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) { /* ignore */ } };
   let idleAt = Date.now(); const bumpIdle = () => { idleAt = Date.now(); };
   const RM = !!(root.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -40,34 +40,24 @@
   }
   const isOpen = (i) => i === 0 || !!save.solved[LV[i - 1].id] || LV.slice(i).some((l) => save.solved[l.id]); // also open when a later level is solved (old saves)
 
-  // ---------- full version (own licence codes; active only when config.js sets buyUrl; no portal or store SDK) ----------
-  const CFG = V.config || {}, LIC = V.license;
-  const gateOn = () => !!CFG.buyUrl;
-  let licOK = false;                                    // set after the signature of the saved licence is verified (async, WebCrypto)
-  const unlockedAll = () => !gateOn() || licOK;
+  // ---------- full version: one purchase in the store (App Store / Google Play). The native wrapper provides V.store;
+  // in the browser there is no store, so everything stays open. ----------
+  const CFG = V.config || {};
+  const gateOn = () => !!V.store;
+  const unlockedAll = () => !gateOn() || save.owned;
   const lockedLv = (lv) => !unlockedAll() && (lv.ch || 1) > (CFG.freeChapters || 2);
   const freeCount = () => LV.filter((l) => !lockedLv(l)).length;
   function offerMsg(k, ok) { const m = $('offer-msg'); m.textContent = k ? t(k) : ''; m.classList.toggle('ok', !!ok); }
   function showOffer() {
-    $('offer-t').textContent = t('pw.title'); $('offer-p').textContent = t('pw.p') + (CFG.price ? ' ' + CFG.price : '');
-    const b = $('offer-buy'); b.textContent = t('pw.buy'); b.href = CFG.buyUrl || '#'; $('offer-code').value = ''; offerMsg('');
-    $('offer').hidden = false; track('paywall_view', {}); try { $('offer-code').focus({ preventScroll: true }); } catch (e) { /* ignore */ }
+    $('offer-t').textContent = t('pw.title'); $('offer-p').textContent = t('pw.p'); offerMsg('');
+    $('offer-buy').textContent = t('pw.buy') + (V.store && V.store.price ? ' · ' + V.store.price() : '');
+    $('offer').hidden = false; track('paywall_view', {});
   }
-  async function activate(raw) {
-    const tok = LIC.clean(raw);
-    if (tok && await LIC.check(tok)) { save.lic = tok; licOK = true; persist(); track('licence_ok', {}); return true; }
-    return false;
+  async function storeDo(fn, okKey) {
+    try { if (await fn()) { save.owned = true; persist(); track('purchase_ok', {}); offerMsg(okKey, true); setTimeout(() => { $('offer').hidden = true; refreshText(); }, 900); } else offerMsg('pw.bad'); }
+    catch (e) { offerMsg('pw.bad'); }
   }
-  async function tryCode() {
-    if (await activate($('offer-code').value)) { offerMsg('pw.on', true); setTimeout(() => { $('offer').hidden = true; refreshText(); }, 900); }
-    else { offerMsg('pw.bad'); A.play('coach'); track('licence_bad', {}); }
-  }
-  // verify a saved licence at start, and accept an activation link  https://site/#lic=...
-  (async () => {
-    if (save.lic && await LIC.check(save.lic)) { licOK = true; refreshText(); }
-    const m = /lic=([^&,\s]+)/.exec(location.hash);
-    if (m) { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* ignore */ } if (await activate(m[1])) { refreshText(); say('pw.on', null, 3200); } else say('pw.bad', null, 3200); }
-  })();
+  if (V.store && V.store.owned) V.store.owned().then((o) => { if (o && !save.owned) { save.owned = true; persist(); refreshText(); } }).catch(() => {});
   V.paywall = { locked: lockedLv, offer: () => showOffer() };
 
   // ---------- scene ----------
@@ -103,7 +93,7 @@
   function hud() {
     $('h-num').textContent = daily ? t('daily.t') : t('hud.level', { n: li + 1 }); $('h-name').textContent = pick(level.name);
     const m = $('h-moves'); if (m.textContent !== String(moves)) { m.textContent = moves; const c = m.parentNode; c.classList.remove('bump'); void c.offsetWidth; c.classList.add('bump'); }
-    $('h-undo').disabled = !undo.length || walking || won; $('h-hint').disabled = walking || won; $('h-reset').disabled = walking;
+    $('h-undo').disabled = !undo.length || walking || won; $('h-hint').disabled = walking || won; $('h-hint').classList.toggle('spent', !!save.hu[level.id]); $('h-reset').disabled = walking;
     $('h-rotl').disabled = $('h-rotr').disabled = walking || won;
     const b = $('h-hints'); b.hidden = !hints; b.textContent = hints;
   }
@@ -117,17 +107,19 @@
     else if (coachStep === 'seam') C.show(t('coach.seam'), '', 'tap');
     else if (coachStep === 'goal') C.show(t('coach.goal'), '', 'tap');
     else if (coachStep === 'lever') C.show(t('coach.lever'), '', 'tap');
+    else if (coachStep === 'warp') C.show(t('coach.warp'), '', 'tap');
+    else if (coachStep === 'twin') C.show(t('coach.twin'), '', 'tap');
     else if (coachStep === 'slider') C.show(t('coach.slider'), '', 'drag');
     else if (coachStep === 'crumble') C.show(t('coach.crumble'), '', 'tap');
     else if (coachStep === 'phase') C.show(t('coach.phase'), '', 'drag');
     else if (coachStep === 'toggle') C.show(t('coach.toggle'), '', 'tap');
     else C.hide();
   }
-  const TUT = { W01: 'w01', W03: 'w03', W04: 'w04', W05: 'w05', W22: 'w22', W28: 'w28' };
+  const TUT = { W01: 'w01', W03: 'w03', W04: 'w04', W05: 'w05', W22: 'w22', W28: 'w28', W49: 'w49', W58: 'w58' };
   function coachDone() { if (coachStep && TUT[level.id] && !daily) { save.tut[TUT[level.id]] = 1; persist(); } coachStep = null; UI.Coach.hide(); }
   function coachInit() {
     const k = TUT[level.id]; coachStep = null;
-    if (k && !save.tut[k] && !daily) coachStep = level.id === 'W01' ? 'rot' : level.id === 'W03' ? 'lever' : level.id === 'W05' ? 'crumble' : level.id === 'W22' ? 'phase' : level.id === 'W28' ? 'toggle' : 'slider';
+    if (k && !save.tut[k] && !daily) coachStep = level.id === 'W01' ? 'rot' : level.id === 'W03' ? 'lever' : level.id === 'W05' ? 'crumble' : level.id === 'W22' ? 'phase' : level.id === 'W28' ? 'toggle' : level.id === 'W49' ? 'warp' : level.id === 'W58' ? 'twin' : 'slider';
     coachShow();
     if (!coachStep && !won) setTimeout(() => { if (playing() && !coachStep && !moves) UI.toast(pick(level.hint), 4600); }, 600);
   }
@@ -173,13 +165,15 @@
     hud();
     scene.walk(path, (tid) => {
       const prev = st; st = W.step(level, st, tid); A.play('step'); A.haptic('step');
+      if (st.tile !== tid) { scene.teleport(st.tile); seams(); A.play('unlock'); A.haptic('tap'); if (coachStep === 'warp') coachDone(); }
+      if (st.tw !== prev.tw) { scene.setState(st, true); seams(); }
       if (Object.keys(st.gone).length !== Object.keys(prev.gone || {}).length) { scene.setState(st, true); seams(); A.play('side'); if (coachStep === 'crumble') coachDone(); }
       if (Object.keys(st.sw).length !== Object.keys(prev.sw).length) {
         const on = Object.keys(st.sw).length > Object.keys(prev.sw).length; scene.setState(st, true); seams(); A.play(on ? 'unlock' : 'side'); say(on ? 'toast.gate' : 'toast.gateoff', null, 1800);
         if (coachStep === 'lever' || coachStep === 'toggle') coachDone();
       }
     }, () => {
-      walking = false; scene.setInputEnabled(true); seamN = seams().length;
+      walking = false; scene.setInputEnabled(true); seamN = seams().length; if (coachStep === 'twin') coachDone();
       if (W.solved(level, st)) win(); else { hud(); saveCur(); checkDead(); }
     });
   }
@@ -197,14 +191,31 @@
     st = W.initial(level); undo = []; moves = 0; turns = 0; trail = ''; if (!keepHints) hints = 0; won = false; walking = false; clearHl(); hideBar();
     scene.setState(st, true); setCamAnim(st.cam); seamN = seams().length; scene.setInputEnabled(true); $('win').hidden = true; hud(); saveCur();
   }
+  // One hint per level, and it carries an idea rather than the next click: the turn to make (if any) and the tile to walk to,
+  // or the lever / portal that matters next. It is spent for good on that level, so it cannot be mashed.
   function hint() {
     if (!playing() || walking || won) return;
-    const sol = W.solve(level, 60, st), a = sol && sol.actions[0];
-    if (!a) { say('toast.nohint'); A.play('coach'); return; }
-    const hk = W.key(st) + '|' + moves; if (hk !== lastHint) { hints++; lastHint = hk; track('hint', { level: level.id, n: hints }); } A.play('hint'); const hb = $('h-hint'); hb.classList.remove('glow'); void hb.offsetWidth; hb.classList.add('glow'); clearHl();
-    if (a.t === 'rot') { scene.pulseHint(a.dir > 0 ? 'rotate-left' : 'rotate-right'); say(a.dir > 0 ? 'hint.rotl' : 'hint.rotr'); }
-    else if (a.t === 'step') { let i = 0; while (sol.actions[i + 1] && sol.actions[i + 1].t === 'step') i++; hl(sol.actions[i].to, 4200); say('hint.step'); }
-    else { const tile = level.tiles.find((x) => x.slider === a.id), n = level.sliders.find((s) => s.id === a.id).positions.length; hl(tile.id, 4200); say('hint.slide', { n: a.pos + 1, m: n }, 3600); }
+    if (save.hu[level.id]) { say('hint.spent', null, 2600); A.play('coach'); return; }
+    const sol = W.solve(level, 60, st), acts = sol && sol.actions;
+    if (!acts || !acts.length) { say('toast.nohint'); A.play('coach'); return; }
+    let i = 0, rot = 0; while (acts[i] && acts[i].t === 'rot') { rot += acts[i].dir; i++; }
+    const n = ((rot % 4) + 4) % 4, dirL = n === 1 || (n === 2 && acts[0].dir > 0), cnt = n === 3 ? 1 : n, run = [];
+    let j = i; while (acts[j] && acts[j].t === 'step') run.push(acts[j++].to);
+    const kindOf = (id) => (level.tiles.find((x) => x.id === id) || {}).kind;
+    const key = run.find((id) => ['switch', 'toggle', 'warp'].includes(kindOf(id)));
+    let tile = null, msg;
+    if (run.length) {
+      const k = key ? kindOf(key) : '';
+      tile = key || run[run.length - 1];
+      msg = k === 'switch' || k === 'toggle' ? 'hint.lever' : k === 'warp' ? 'hint.warp' : n ? (n === 3 ? 'hint.rt.r' : dirL ? 'hint.rt.l' : 'hint.rt.r') : 'hint.go';
+    } else if (acts[i] && acts[i].t === 'slide') { tile = (level.tiles.find((x) => x.slider === acts[i].id) || {}).id; msg = 'hint.slide'; }
+    else { say('toast.nohint'); A.play('coach'); return; }
+    save.hu[level.id] = 1; hints++; lastHint = W.key(st) + '|' + moves; persist(); track('hint', { level: level.id, n: hints });
+    A.play('hint'); const hb = $('h-hint'); hb.classList.remove('glow'); void hb.offsetWidth; hb.classList.add('glow'); clearHl();
+    if (n && run.length && msg.startsWith('hint.rt')) scene.pulseHint(n === 3 ? 'rotate-right' : dirL ? 'rotate-left' : 'rotate-right');
+    if (tile) hl(tile, 7000);
+    const sl = acts[i] && acts[i].t === 'slide' ? level.sliders.find((s) => s.id === acts[i].id) : null;
+    say(msg, sl ? { n: acts[i].pos + 1, m: sl.positions.length } : { x: cnt === 2 ? t('hint.twice') : '' }, 6500);
     hud();
   }
 
@@ -219,11 +230,9 @@
   }
   const solvedN = () => Object.keys(save.solved).length, DAILY_AT = 8;                 // the daily opens after 5 solved levels
   const dailyDone = () => !!(save.daily && save.daily.day === dayNo());
-  const freezeOK = (d) => (save.streak.fw || 0) !== Math.floor(d / 7);                  // one skipped day per week is forgiven
-  const streakNow = () => { const sk = save.streak, d = dayNo(); return sk && (sk.last >= d - 1 || (sk.last === d - 2 && freezeOK(d))) ? sk.n : 0; };
   function dailyLabel() {
     const b = $('t-daily'); if (!b) return; const open = solvedN() >= DAILY_AT; $('b-daily').disabled = !open; $('b-daily').style.opacity = open ? '' : '.5';
-    b.textContent = !open ? t('daily.lock', { n: DAILY_AT - solvedN() }) : t('daily.t') + (dailyDone() ? ' ✓' : streakNow() ? ' · ' + t('daily.streak', { n: streakNow() }) : '');
+    b.textContent = !open ? t('daily.lock', { n: DAILY_AT - solvedN() }) : t('daily.t') + (dailyDone() ? ' ✓' : '');
   }
   function shareText() {
     const sq = { T: '🟦', W: '🟨', S: '🟩' }; let tr = trail.split('').map((c) => sq[c] || '').join(''); if (tr.length > 20) tr = tr.slice(0, 20) + '…';
@@ -259,7 +268,7 @@
     A.play('solve'); A.haptic('solve');
     const par = parOf(level), stars = 1 + (hints === 0 ? 1 : 0) + (moves <= par ? 1 : 0), old = save.solved[level.id];
     lastStars = stars;
-    if (daily) { const d = dailyDay, sk = save.streak; if (d === dayNo()) { if (sk.last !== d) { const gap = d - sk.last; if (gap === 2 && freezeOK(d)) { sk.fw = Math.floor(d / 7); sk.n++; } else sk.n = gap === 1 ? sk.n + 1 : 1; sk.last = d; } const pv = save.daily && save.daily.day === d ? save.daily : null; save.daily = { day: d, stars: Math.max(stars, pv ? pv.stars : 0), moves: pv ? Math.min(moves, pv.moves) : moves }; } }
+    if (daily) { const d = dailyDay; if (d === dayNo()) { const pv = save.daily && save.daily.day === d ? save.daily : null; save.daily = { day: d, stars: Math.max(stars, pv ? pv.stars : 0), moves: pv ? Math.min(moves, pv.moves) : moves }; } }
     else { save.solved[level.id] = { stars: Math.max(stars, old ? old.stars : 0), best: Math.min(moves, old ? old.best : 1e9) }; delete save.curs[level.id]; }
     persist();
     track('level_complete', { level: level.id, daily, moves, turns, hints, par, stars, sec: Math.round((Date.now() - t0) / 1000) });
@@ -284,6 +293,15 @@
     scene.setLevel(level); scene.setState(st, false); scene.setCam(st.cam, false); seamN = seams().length; scene.setInputEnabled(true);
     bumpIdle(); track('level_start', { level: level.id, daily, resumed: moves + turns > 0 });
     UI.go('play'); hud(); coachInit(); if (moves + turns > 0) setTimeout(checkDead, 400);
+    trans();
+  }
+  // Level card: ink fades in with the level number and chapter, the level is already swapped underneath, then it clears. Skipped for the very first start.
+  let transT = 0, booted = false;
+  function trans() {
+    const e = $('transition'); if (!e) return; if (!booted) { booted = true; return; }
+    const ch = (W.CHAPTERS || []).find((x) => x.n === (level.ch || 1));
+    $('tr-num').textContent = daily ? '·' : li + 1; $('tr-chapter').textContent = daily ? t('daily.t') : t('ch.n', { n: level.ch || 1 }) + (ch ? ' · ' + V.i18n.pick(ch.name) : '');
+    e.classList.add('is-on'); clearTimeout(transT); transT = setTimeout(() => e.classList.remove('is-on'), RM ? 160 : 520);
   }
   // ---------- menu backdrop: level 1 turns slowly behind the menu ----------
   let bgOn = false, bgCam = 0;
@@ -327,18 +345,18 @@
   document.querySelectorAll('[data-lang]').forEach((b) => b.addEventListener('click', () => { save.set.lang = b.dataset.lang; persist(); V.i18n.setLang(b.dataset.lang); applySettings(); refreshText(); }));
   $('b-reset').addEventListener('click', () => { $('modal').hidden = false; $('m-cancel').focus(); });
   $('m-cancel').addEventListener('click', () => { $('modal').hidden = true; });
-  $('m-ok').addEventListener('click', () => { const s = save.set, lic = save.lic; save = defSave(); save.set = s; save.lic = lic; persist(); $('modal').hidden = true; refreshText(); });
+  $('m-ok').addEventListener('click', () => { const s = save.set, ow = save.owned; save = defSave(); save.set = s; save.owned = ow; persist(); $('modal').hidden = true; refreshText(); });
 
   $('b-pro').addEventListener('click', () => { if (!unlockedAll()) showOffer(); });
-  $('b-support').addEventListener('click', () => { track('support_click', {}); window.open(CFG.supportUrl, '_blank', 'noopener'); });
-  $('offer-ok').addEventListener('click', tryCode); $('offer-code').addEventListener('keydown', (e) => { if (e.key === 'Enter') tryCode(); e.stopPropagation(); });
+  $('offer-buy').addEventListener('click', () => V.store && storeDo(() => V.store.buy(), 'pw.on'));
+  $('offer-restore').addEventListener('click', () => V.store && storeDo(() => V.store.restore(), 'pw.on'));
   $('offer-x').addEventListener('click', () => { $('offer').hidden = true; });
-  function proRows() { $('b-pro').hidden = !gateOn(); $('t-pro').textContent = unlockedAll() ? t('pw.active') : t('pw.open'); $('b-support').hidden = !CFG.supportUrl; }
+  function proRows() { $('b-pro').hidden = !gateOn(); $('t-pro').textContent = unlockedAll() ? t('pw.active') : t('pw.open') }
   // Stuck for a while? Offer the hint button instead of leaving the player alone.
   ['pointerdown', 'keydown'].forEach((ev) => document.addEventListener(ev, bumpIdle, true));
   setInterval(() => {
     if (!playing() || won || walking || document.hidden || UI.Coach.on || !$('dead').hidden || !$('offer').hidden) return;
-    if (Date.now() - idleAt > 25000) { idleAt = Date.now(); say('hint.idle', null, 4800); const hb = $('h-hint'); hb.classList.remove('glow'); void hb.offsetWidth; hb.classList.add('glow'); track('idle', { level: level.id }); }
+    if (Date.now() - idleAt > 25000 && !save.hu[level.id]) { idleAt = Date.now(); say('hint.idle', null, 4800); const hb = $('h-hint'); hb.classList.remove('glow'); void hb.offsetWidth; hb.classList.add('glow'); track('idle', { level: level.id }); }
   }, 3000);
   // ---------- wiring ----------
   document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => UI.go(b.dataset.go)));
@@ -382,7 +400,14 @@
   UI.on('play', () => { document.activeElement && document.activeElement.blur && document.activeElement.blur(); });
   root.addEventListener('resize', () => scene.resize());
   // Schedule the next frame FIRST and isolate errors: one bad frame must never stop the loop (that would freeze the whole game).
-  (function loop(now) { requestAnimationFrame(loop); try { scene.frame(now); } catch (e) { if (root.console) console.error('frame error', e); } })(0);
+  // Frame loop: idle scenes are drawn at ~30 fps to save battery; if moving frames keep taking too long the render resolution steps down (never back up).
+  let fLast = 0, fSlow = 0, fStep = 0; const SCALES = [1.5, 1, 0.75];
+  (function loop(now) {
+    requestAnimationFrame(loop); const dt = now - fLast;
+    if (dt < 30 && !scene.busy()) return;
+    if (fLast && scene.busy() && dt < 250) { fSlow = dt > 30 ? fSlow + 1 : Math.max(0, fSlow - 2); if (fSlow > 60 && fStep < SCALES.length - 1) { fStep++; fSlow = 0; scene.setScale(SCALES[fStep]); track('perf_down', { step: fStep }); } }
+    fLast = now; try { scene.frame(now); } catch (e) { if (root.console) console.error('frame error', e); }
+  })(0);
 
   // ---------- boot ----------
   V.i18n.setLang(save.set.lang); applySettings(); UI.buildHow(); scene.resize();

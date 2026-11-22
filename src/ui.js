@@ -43,7 +43,7 @@
 
   // ---- mini iso diagram of a level at its start camera (same projection as the world rules) ----
   const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-  const TOP = { floor: '#4A5680', start: '#5CC6D9', goal: '#F6D898', switch: '#C79BF2', gate: '#C79BF2', crumble: '#B98A66', phase: '#6FD3E6', toggle: '#C79BF2' };
+  const TOP = { floor: '#4A5680', start: '#5CC6D9', goal: '#F6D898', switch: '#C79BF2', gate: '#C79BF2', crumble: '#B98A66', phase: '#6FD3E6', toggle: '#C79BF2', warp: '#B58CFF', twin: '#6FD3E6', tgoal: '#6FD3E6' };
   function shade(hex, k) { const n = parseInt(hex.slice(1), 16); const c = (s) => Math.max(0, Math.min(255, Math.round(((n >> s) & 255) * k))); return 'rgb(' + c(16) + ',' + c(8) + ',' + c(0) + ')'; }
   function drawMini(cv, level, st, sz) {   // sz = [w, h] draws at an exact pixel size (used for the share picture)
     const r = sz ? { width: sz[0], height: sz[1] } : cv.getBoundingClientRect(), dpr = sz ? 1 : Math.min(2, root.devicePixelRatio || 1);
@@ -65,6 +65,7 @@
       if (tl.kind === 'goal') { const c = P(pr([x + .5, y + 1, z + .5])); g.shadowColor = '#E9C27A'; g.shadowBlur = 18 * dpr; poly([[x, y + 1, z], [x + 1, y + 1, z], [x + 1, y + 1, z + 1], [x, y + 1, z + 1]], base); g.shadowBlur = 0; g.beginPath(); g.arc(c[0], c[1], k * .16, 0, 7); g.fillStyle = '#fff'; g.fill(); }
       else poly([[x, y + 1, z], [x + 1, y + 1, z], [x + 1, y + 1, z + 1], [x, y + 1, z + 1]], gate ? null : base, gate ? (tl.kind === 'phase' ? base : '#C79BF2') : 'rgba(255,255,255,.18)', gate ? [4 * dpr, 3 * dpr] : null);
       if (tl.kind === 'phase') { const c = P(pr([x + .5, y + 1, z + .5])), r = k * .13; g.beginPath(); if (tl.ph) { g.moveTo(c[0], c[1] - r * 1.2); g.lineTo(c[0] + r * 1.2, c[1]); g.lineTo(c[0], c[1] + r * 1.2); g.lineTo(c[0] - r * 1.2, c[1]); g.closePath(); } else g.arc(c[0], c[1], r, 0, 7); g.strokeStyle = base; g.lineWidth = Math.max(1.5, 1.6 * dpr); g.stroke(); }
+      if (tl.kind === 'warp' || tl.kind === 'twin' || tl.kind === 'tgoal') { const c = P(pr([x + .5, y + 1, z + .5])); g.beginPath(); g.arc(c[0], c[1], k * (tl.kind === 'twin' ? .13 : .2), 0, 7); g.fillStyle = tl.kind === 'twin' ? '#0B0D14' : 'rgba(11,13,20,.55)'; g.fill(); g.lineWidth = 1.6 * dpr; g.strokeStyle = tl.kind === 'warp' ? (tl.wc ? '#FF8FB1' : '#E3D2FF') : '#CFF4FA'; if (tl.kind !== 'twin') g.stroke(); }
       if (tl.kind === 'start') { const c = P(pr([x + .5, y + 1, z + .5])); g.beginPath(); g.arc(c[0], c[1], k * .13, 0, 7); g.fillStyle = '#0B0D14'; g.fill(); }
       g.globalAlpha = 1; g.setLineDash([]);
     });

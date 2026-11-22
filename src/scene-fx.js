@@ -43,9 +43,10 @@
   }
 
   // Small rounded character: pill body, sphere head, gold scarf with a tail. Faces +z.
-  function makeFigure() {
+  function makeFigure(o) {
+    o = o || {};
     const g = new T.Group(), body = new T.Group(); g.add(body);
-    const mB = new T.MeshLambertMaterial({ color: 0xF1E8D6, emissive: 0x2b2519 }), mS = new T.MeshLambertMaterial({ color: GOLD, emissive: 0x6b5424 });
+    const mB = new T.MeshLambertMaterial({ color: o.body || 0xF1E8D6, emissive: o.bodyE || 0x2b2519 }), mS = new T.MeshLambertMaterial({ color: o.scarf || GOLD, emissive: o.scarfE || 0x6b5424 });
     const H = 0.34, R = 0.15, pr = [];
     for (let i = 0; i <= 8; i++) { const a = -Math.PI / 2 + i / 8 * Math.PI / 2; pr.push(new T.Vector2(Math.max(0.001, Math.cos(a) * R), R + Math.sin(a) * R)); }
     for (let i = 1; i <= 8; i++) { const a = i / 8 * Math.PI / 2; pr.push(new T.Vector2(Math.max(0.001, Math.cos(a) * R * 0.92), H - R + 0.04 + Math.sin(a) * R)); }

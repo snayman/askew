@@ -1,0 +1,31 @@
+/* Vantage: level transition screen. Total <= 640 ms (out 220 + hold + in 260), opacity/transform only. */
+.transition {
+  position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; text-align: center;
+  background: var(--ink-0, #0B0D14); color: var(--text, #F3EFE7);
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .22s ease-out, visibility 0s .22s;
+  padding: calc(env(safe-area-inset-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px);
+}
+.transition.is-on { opacity: 1; visibility: visible; pointer-events: none; transition: opacity .12s ease-out, visibility 0s; }
+
+.transition__inner { display: grid; gap: 10px; justify-items: center; }
+.transition__num, .transition__chapter { opacity: 0; transform: translateY(6px); }
+.transition__num {
+  font: 300 64px/1 var(--sans, -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif);
+  letter-spacing: -.03em; font-variant-numeric: tabular-nums;
+}
+.transition__chapter {
+  font: 400 17px/1.3 var(--sans, -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif);
+  letter-spacing: .01em; color: var(--text-2, rgba(243,239,231,.74));
+}
+.transition__rule { width: 28px; height: 2px; border-radius: 1px; background: var(--gold, #E9C27A); opacity: 0; transform: scaleX(.4); }
+
+.transition.is-on .transition__num     { opacity: 1; transform: none; transition: opacity .26s ease-out .06s, transform .3s cubic-bezier(.22,.8,.24,1) .06s; }
+.transition.is-on .transition__rule    { opacity: 1; transform: none; transition: opacity .26s ease-out .12s, transform .3s cubic-bezier(.22,.8,.24,1) .12s; }
+.transition.is-on .transition__chapter { opacity: 1; transform: none; transition: opacity .26s ease-out .18s, transform .3s cubic-bezier(.22,.8,.24,1) .18s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .transition, .transition.is-on { transition-duration: .01s; transition-delay: 0s; }
+  .transition__num, .transition__chapter, .transition__rule,
+  .transition.is-on .transition__num, .transition.is-on .transition__rule, .transition.is-on .transition__chapter { transform: none; transition: opacity .12s linear; }
+}

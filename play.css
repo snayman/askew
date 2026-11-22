@@ -67,3 +67,6 @@
 .photo .hud, .photo .win { opacity: 0; pointer-events: none !important; transition: opacity .35s var(--ease); } .photo .hud *, .photo .win * { pointer-events: none !important; }
 @media (min-width: 700px) { .win { align-items: center; } }
 @media (max-height: 640px) { .win-card { padding: 16px; gap: 8px; } .stars .ic { width: 36px; height: 36px; } .win-card h2 { font-size: 28px; } }
+
+.tool.spent { opacity: .45; }
+.tool.spent .badge { opacity: 1; }

@@ -5,17 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Vantage</title>
 <meta name="description" content="Vantage: turn the world until distance disappears. An isometric puzzle about impossible paths. Play instantly, no sign-up.">
-<meta property="og:type" content="website"><meta property="og:title" content="Vantage — a puzzle about impossible paths"><meta property="og:description" content="Turn the world until distance disappears. 21 levels, a new daily level, no sign-up."><meta name="twitter:card" content="summary">
+<meta property="og:type" content="website"><meta property="og:title" content="Vantage — a puzzle about impossible paths"><meta property="og:description" content="Turn the world until distance disappears. 66 handmade levels, a new daily level, no sign-up."><meta property="og:image" content="https://snayman.github.io/vantage-game/assets/og-cover.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://snayman.github.io/vantage-game/assets/og-cover.png">
 <meta name="theme-color" content="#0B0D14">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="color-scheme" content="dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 10L84 29 50 48 16 29z' fill='%23E9C27A'/%3E%3Cpath d='M16 36l34 19v37L16 73z' fill='%23E9C27A' fill-opacity='.35'/%3E%3Cpath d='M84 36v37L50 92V55z' fill='%235CC6D9' fill-opacity='.5'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon-180.png">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="play.css">
 <link rel="stylesheet" href="panels.css">
+<link rel="stylesheet" href="assets/transitions.css">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -53,6 +56,7 @@
 </svg>
 
 <div id="app">
+  <div class="transition" id="transition" aria-hidden="true"><div class="transition__inner"><div class="transition__num" id="tr-num"></div><i class="transition__rule"></i><div class="transition__chapter" id="tr-chapter"></div></div></div>
   <canvas id="game" tabindex="-1" aria-label="Vantage"></canvas>
 
   <!-- splash -->
@@ -165,7 +169,6 @@
             <button class="switch" role="switch" data-set="haptics" aria-checked="true" data-i18n-aria="set.haptics"></button></div>
         </div>
         <button class="btn btn-glass btn-lg" id="b-pro" hidden><svg class="ic"><use href="#i-star"/></svg><span id="t-pro"></span></button>
-        <button class="btn btn-glass btn-lg" id="b-support" hidden><svg class="ic"><use href="#i-next"/></svg><span data-i18n="pw.support"></span></button>
         <button class="btn btn-danger" id="b-reset"><svg class="ic"><use href="#i-trash"/></svg><span data-i18n="set.reset"></span></button>
       </div>
     </div>
@@ -177,13 +180,12 @@
     </div>
   </section>
 
-  <!-- full version offer (only used when config.js sets buyUrl) -->
+  <!-- full version offer (shown only when the native wrapper provides V.store) -->
   <div class="modal" id="offer" hidden style="z-index:8">
     <div class="modal-card" role="dialog" aria-labelledby="offer-t">
       <h3 id="offer-t"></h3><p id="offer-p"></p>
-      <a class="btn btn-primary btn-lg" id="offer-buy" target="_blank" rel="noopener" style="margin-top:16px;width:100%"></a>
-      <label class="offer-l" for="offer-code" data-i18n="pw.code"></label>
-      <div class="offer-row"><input id="offer-code" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="…"><button class="btn btn-glass" id="offer-ok" data-i18n="pw.ok"></button></div>
+      <button class="btn btn-primary btn-lg" id="offer-buy" style="margin-top:16px;width:100%"></button>
+      <button class="btn btn-glass" id="offer-restore" style="width:100%;margin-top:8px" data-i18n="pw.restore"></button>
       <p class="offer-msg" id="offer-msg" role="status"></p>
       <button class="btn btn-glass" id="offer-x" style="width:100%;margin-top:8px" data-i18n="pw.later"></button>
     </div>
@@ -201,7 +203,7 @@
   </section>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="vendor/three.min.js"></script>
 <script src="config.js"></script>
 <script src="src/world.js"></script>
 <script src="src/levels.js"></script>
