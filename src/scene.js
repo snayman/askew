@@ -26,7 +26,7 @@
 
     const fig = FX.makeFigure(); fig.visible = false; world.add(fig); fig.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     const FIG = 1.12; const figScale = (k) => fig.scale.setScalar(k * FIG), fig2Scale = (k) => fig2.scale.setScalar(k * FIG);
-    const TWC = 0x7FE3B8, fig2 = FX.makeFigure({ body: 0xCFE8DB, hood: 0xB4D4C4, bodyE: 0x0c1a14, scarf: TWC, scarfE: 0x0f3a2a }); fig2.visible = false; world.add(fig2); fig2.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    const TWC = 0x7FE3B8, fig2 = FX.makeFigure({ body: 0xCFE8DB, hood: 0xB4D4C4, head: 0x0A1612, bodyE: 0x0c1a14, scarf: TWC, scarfE: 0x0f3a2a }); fig2.visible = false; world.add(fig2); fig2.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     const shadow2 = new T.Mesh(FX.plane(), sh.dark); shadow2.rotation.x = -Math.PI / 2; shadow2.visible = false; world.add(shadow2);
     const shadow = new T.Mesh(FX.plane(), sh.dark); shadow.rotation.x = -Math.PI / 2; world.add(shadow);
     const hlRing = new T.Mesh(sh.ring, new T.MeshBasicMaterial({ color: 0xE0343A, transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending })); hlRing.rotation.x = -Math.PI / 2; hlRing.visible = false; world.add(hlRing);
