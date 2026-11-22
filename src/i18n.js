@@ -35,7 +35,8 @@
       'how.title': 'Как играть', 'how.sub': 'Три правила этого мира',
       'how.1.h': 'Вращай мир', 'how.1.p': 'Перетащи по экрану или нажми стрелки: вид переключается между четырьмя сторонами.',
       'how.2.h': 'Соединяй на экране', 'how.2.p': 'Если плитки касаются на экране, между ними можно пройти — даже когда в мире они далеко друг от друга.',
-      'how.3.h': 'Дойди до портала', 'how.3.p': 'Коснись плитки, чтобы идти. Рычаги открывают ворота, а блоки можно двигать.',
+      'how.3.h': 'Дойди до кольца', 'how.3.p': 'Коснись плитки, чтобы идти. Рычаги открывают ворота, а блоки можно двигать.',
+      'set.foot': 'Vantage · {n} уровней · работает без интернета', 'how.legend': 'Что встретится', 'how.l.lever': 'Рычаг и ворота', 'how.l.lever.p': 'Наступи на рычаг, и ворота откроются. Переключатель меняет их туда и обратно.', 'how.l.slider': 'Блок-ползунок', 'how.l.slider.p': 'Его можно сдвинуть пальцем: новое положение соединяет другие плитки.', 'how.l.crumble': 'Хрупкая плитка', 'how.l.crumble.p': 'Рассыпается, как только ты с неё сошёл. Назад нельзя.', 'how.l.ghost': 'Призрак', 'how.l.ghost.p': 'Есть только с двух противоположных сторон. Поворачивай мир.', 'how.l.portal': 'Портал', 'how.l.portal.p': 'Шагни в кольцо, и выйдешь из парного.', 'how.l.twin': 'Двойник', 'how.l.twin.p': 'Повторяет твои шаги зеркально. Оба должны дойти до своих колец.', 'how.hint': 'Подсказка одна на уровень и открывает идею, а не весь путь.',
       'how.stars': 'Звёзды: пройти уровень, обойтись без подсказок, уложиться в эталон ходов. Повороты мира не считаются.', 'how.go': 'К игре',
     },
     en: {
@@ -70,7 +71,8 @@
       'how.title': 'How to play', 'how.sub': 'Three rules of this world',
       'how.1.h': 'Turn the world', 'how.1.p': 'Drag across the screen or press the arrows: the view snaps between four sides.',
       'how.2.h': 'Connect on screen', 'how.2.p': 'If two tiles touch on screen you can walk between them, even when they are far apart in the world.',
-      'how.3.h': 'Reach the portal', 'how.3.p': 'Tap a tile to walk. Levers open gates, and some blocks can be slid.',
+      'how.3.h': 'Reach the ring', 'how.3.p': 'Tap a tile to walk. Levers open gates, and some blocks can be slid.',
+      'set.foot': 'Vantage · {n} levels · works offline', 'how.legend': 'What you will meet', 'how.l.lever': 'Lever and gate', 'how.l.lever.p': 'Step on the lever and the gate opens. A toggle flips gates back and forth.', 'how.l.slider': 'Sliding block', 'how.l.slider.p': 'Drag it: its new position joins other tiles.', 'how.l.crumble': 'Fragile tile', 'how.l.crumble.p': 'Crumbles once you step off. No way back.', 'how.l.ghost': 'Ghost', 'how.l.ghost.p': 'Exists only from two opposite sides. Keep turning the world.', 'how.l.portal': 'Portal', 'how.l.portal.p': 'Step into a ring and you come out of its twin.', 'how.l.twin': 'Twin', 'how.l.twin.p': 'Copies your steps in a mirror. Both must reach their rings.', 'how.hint': 'One hint per level, and it gives the idea, not the whole path.',
       'how.stars': 'Stars: solve the level, use no hints, finish within par. Turning the world is free.', 'how.go': 'Back to game',
     },
   };

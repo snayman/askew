@@ -98,9 +98,19 @@
     dia(40, 68, 't', 20, 11) + '<path class="dash" d="M60 66V84M44 86q16 5 32 0"/>' + dia(60, 55, 't2', 20, 11) + '<path class="seam" d="M40 57L60 68"/>',
     dia(24, 74, 't', 16, 9) + dia(44, 62, 't', 16, 9) + dia(64, 50, 't', 16, 9) + dia(84, 38, 't2', 16, 9) + '<circle class="dot" cx="24" cy="70" r="4"/><circle cx="84" cy="36" r="12" fill="rgba(233,194,122,.16)"/><circle class="dot" cx="84" cy="36" r="3.5"/>',
   ];
+  const G_ = (c, body) => '<svg viewBox="0 0 28 28" aria-hidden="true" style="color:' + c + '">' + body + '</svg>';
+  const LEG = [
+    ['lever', '#C79BF2', '<circle cx="14" cy="14" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="14" cy="14" r="3.6" fill="currentColor"/>'],
+    ['slider', '#8FCF8A', '<rect x="5" y="6" width="18" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 14h8M15 11l3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>'],
+    ['crumble', '#E8A66E', '<rect x="5" y="6" width="18" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 8l4 6-3 3 4 5M19 8l-3 5 4 3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>'],
+    ['ghost', '#6FD3E6', '<path d="M14 5l9 9-9 9-9-9z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="3 2.5"/>'],
+    ['portal', '#B58CFF', '<circle cx="14" cy="14" r="10" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="14" cy="14" r="5.5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="14" cy="14" r="1.6" fill="currentColor"/>'],
+    ['twin', '#6FD3E6', '<ellipse cx="14" cy="17" rx="6" ry="6.5" fill="currentColor" opacity=".85"/><circle cx="14" cy="9" r="4" fill="currentColor"/><path d="M14 3v22" stroke="#0B0D14" stroke-width="1" opacity=".5"/>'],
+  ];
+  const legend = () => '<h3 class="legend-h">' + t('how.legend') + '</h3><div class="legend">' + LEG.map(([k, c, body]) => '<div class="legend-i">' + G_(c, body) + '<div><b>' + t('how.l.' + k) + '</b><span>' + t('how.l.' + k + '.p') + '</span></div></div>').join('') + '</div><p class="how-note">' + t('how.hint') + '</p>';
   function buildHow() {
     $('how-list').innerHTML = [1, 2, 3].map((n) => '<div class="step"><svg class="step-art" viewBox="0 0 112 96" aria-hidden="true">' + ART[n - 1] + '</svg><div class="step-text"><span class="step-n">0' + n + '</span><h3>' + t('how.' + n + '.h') + '</h3><p>' + t('how.' + n + '.p') + '</p></div></div>').join('') +
-      '<p class="how-note">' + t('how.stars') + '</p>';
+      '<p class="how-note">' + t('how.stars') + '</p>' + legend();
   }
 
   V.UI = { $, t, SVG, go, toast, Coach, stars, drawMini, buildLevels, buildHow, cur: () => cur, on: (n, f) => { hooks[n] = f; } };

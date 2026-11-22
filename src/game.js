@@ -334,7 +334,7 @@
   }
   function refreshText() {
     $('t-play').textContent = t(Object.keys(save.solved).length || Object.keys(save.curs).length ? 'menu.continue' : 'menu.play'); dailyLabel();
-    UI.buildHow(); hud(); if (UI.Coach.on) coachShow(); proRows();
+    UI.buildHow(); $('set-foot').textContent = t('set.foot', { n: LV.length }); hud(); if (UI.Coach.on) coachShow(); proRows();
     if (UI.cur() === 'levels') UI.buildLevels(save, startLevel);
     if (!$('win').hidden) showWin(lastStars);
   }
