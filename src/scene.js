@@ -70,6 +70,30 @@
     const pilGeo = new T.CylinderGeometry(0.17, 0.2, 1.8, 14, 1, true);
     const pillar = (col) => { const m = new T.Mesh(pilGeo, new T.MeshBasicMaterial({ map: pilTex, color: col, transparent: true, opacity: 0.5, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending })); m.position.y = 0.5 + 0.9; return m; };
     const PHD = new T.RingGeometry(0.2, 0.3, 4, 1), WARPC = ['#EDE4CF', '#8FD6B8'];
+    // Architecture: purely visual dressing, never changes what is walkable. Plinth and cornice on every block, arched doors and slit windows on side faces
+    // that do not touch a neighbouring block (so seams stay clean). The mix depends on the chapter, picked per face from a hash so it is stable.
+    const decoTex = (kind) => { const c = document.createElement('canvas'); c.width = 96; c.height = 144; const x = c.getContext('2d');
+      if (kind === 'arch') { x.fillStyle = 'rgba(4,9,7,.78)'; x.beginPath(); x.moveTo(14, 144); x.lineTo(14, 62); x.arc(48, 62, 34, Math.PI, 0); x.lineTo(82, 144); x.closePath(); x.fill(); x.strokeStyle = 'rgba(237,228,207,.22)'; x.lineWidth = 4; x.stroke(); x.fillStyle = 'rgba(237,228,207,.07)'; x.fillRect(14, 140, 68, 4); }
+      else if (kind === 'slit') { x.fillStyle = 'rgba(4,9,7,.8)'; x.beginPath(); x.moveTo(36, 40); x.lineTo(60, 40); x.lineTo(60, 100); x.lineTo(36, 100); x.closePath(); x.fill(); x.strokeStyle = 'rgba(237,228,207,.2)'; x.lineWidth = 3; x.stroke(); }
+      else { x.fillStyle = 'rgba(4,9,7,.55)'; for (let k = 0; k < 4; k++) x.fillRect(10 + k * 22, 20, 12, 108); }                 // 'pilasters'
+      const t = new T.CanvasTexture(c); t.anisotropy = 4; return t; };
+    const DECO = { arch: decoTex('arch'), slit: decoTex('slit'), pil: decoTex('pil') };
+    const decoGeo = { plinth: new T.BoxGeometry(1.06, 0.12, 1.06), cornice: new T.BoxGeometry(1.05, 0.07, 1.05), plane: new T.PlaneGeometry(0.34, 0.51) };
+    const decoMats = {};
+    const decoMat = (p) => decoMats[p.t] || (decoMats[p.t] = { trim: new T.MeshLambertMaterial({ color: new T.Color(p.l).multiplyScalar(0.9) }), base: new T.MeshLambertMaterial({ color: new T.Color(p.r).multiplyScalar(1.1) }) });
+    const faceMat = {}; const decalMat = (k) => faceMat[k] || (faceMat[k] = new T.MeshBasicMaterial({ map: DECO[k], transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+    const CH_DECO = { 1: ['arch', 'slit'], 2: ['pil', 'slit'], 3: ['slit'], 4: ['arch'], 5: ['arch', 'pil'], 6: ['slit', 'arch'], 7: ['pil'] };
+    function dress(t, d) {
+      const dm = decoMat(pal), base = new T.Mesh(decoGeo.plinth, dm.base); base.position.y = -0.44; const top = new T.Mesh(decoGeo.cornice, dm.trim); top.position.y = 0.5 - 0.035 - 0.006;
+      t.g.add(base, top);
+      const kinds = CH_DECO[level.ch || 1] || ['arch'], FACES = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+      FACES.forEach(([nx, nz], i) => {
+        const touching = level.tiles.some((o) => o !== d && o.pos[1] === d.pos[1] && o.pos[0] === d.pos[0] + nx && o.pos[2] === d.pos[2] + nz);
+        if (touching || hash01(d.id, 10 + i) > 0.55) return;
+        const k = kinds[Math.floor(hash01(d.id, 20 + i) * kinds.length)], m = new T.Mesh(decoGeo.plane, decalMat(k));
+        m.position.set(nx * 0.508, -0.02, nz * 0.508); m.rotation.y = Math.atan2(nx, nz); t.g.add(m);
+      });
+    }
     function buildTile(d, hue) {
       const t = { id: d.id, d, kind: d.kind, sl: d.slider, base: d.pos, off: [0, 0, 0], open: 0, openT: 0, press: 0, pressT: 0, sweep: 2, gone: 0, goneT: 0, g: new T.Group() };
       const glass = d.kind === 'gate';
@@ -77,7 +101,7 @@
       if (d.kind === 'phase') t.phc = new T.Color(d.ph ? '#EDE4CF' : '#8FD6B8');
       if (d.kind === 'crumble') { t.mat.color.lerp(new T.Color('#b4623c'), 0.5); t.mat.emissive.lerp(new T.Color('#5a210f'), 0.14); }
       if (!glass) { t.mat.map = grainTex; const j = 0.9 + 0.1 * hash01(d.id, 1); t.mat.color.setRGB(j, j * (0.97 + 0.05 * hash01(d.id, 2)), j * (0.97 + 0.05 * hash01(d.id, 3))); }
-      t.body = new T.Mesh(bevelFor(pal), t.mat); t.g.add(t.body); if (!glass) { t.body.castShadow = true; t.body.receiveShadow = true; }
+      t.body = new T.Mesh(bevelFor(pal), t.mat); t.g.add(t.body); if (!glass) { t.body.castShadow = true; t.body.receiveShadow = true; if (d.kind !== 'phase' && d.kind !== 'crumble') dress(t, d); }
       const rimC = new T.Color(GOLD).lerp(new T.Color(hue), 0.35);
       t.rim = new T.LineLoop(sh.rim, new T.LineBasicMaterial({ color: rimC, transparent: true, opacity: glass ? 0.55 : 0.34 })); t.rim.position.y = 0.502; t.g.add(t.rim);
       const hc = new T.Color(hue).lerp(new T.Color(GOLD), 0.4);
