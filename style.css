@@ -1,4 +1,4 @@
-/* Vantage (walk): tokens, base, buttons, screens, splash, menu, pages, settings, how-to. See play.css (HUD, coach, win) and panels.css (levels). One dark theme. */
+/* Askew (walk): tokens, base, buttons, screens, splash, menu, pages, settings, how-to. See play.css (HUD, coach, win) and panels.css (levels). One dark theme. */
 :root {
   --scene-top: #151925; --scene-bottom: #0B0D14;           /* read by scene.js */
   --ink-0: #0B0D14; --ink-1: #151925; --ink-2: #1D2333;

@@ -1,4 +1,4 @@
-/* Vantage (walk): level select cards. */
+/* Askew (walk): level select cards. */
 .ch-head { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 10px; margin: 20px 4px 0; } .ch-head:first-child { margin-top: 0; }
 .ch-head span { color: var(--text-3); font-size: 13px; font-weight: 500; } .ch-head h3 { font-size: 24px; font-weight: 700; letter-spacing: -.02em; flex: 1; } .ch-head small { color: var(--text-3); font-size: 13px; font-variant-numeric: tabular-nums; }
 .lv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 16px; }

@@ -1,4 +1,4 @@
-/* Vantage: level transition screen. Total <= 640 ms (out 220 + hold + in 260), opacity/transform only. */
+/* Askew: level transition screen. Total <= 640 ms (out 220 + hold + in 260), opacity/transform only. */
 .transition {
   position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; text-align: center;
   background: var(--ink-0, #0B0D14); color: var(--text, #F3EFE7);

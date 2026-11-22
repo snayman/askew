@@ -1,4 +1,4 @@
-// Vantage game controller: state, input handlers, undo, hints, coach, win, save, wiring. Rules live in world.js, drawing in scene.js.
+// Askew game controller: state, input handlers, undo, hints, coach, win, save, wiring. Rules live in world.js, drawing in scene.js.
 (function (root) {
   const W = root.W, V = root.V, UI = V.UI, A = V.Audio || { play() {}, unlock() {}, setSound() {}, setMusic() {}, setHaptics() {}, haptic() {} };
   const $ = UI.$, t = UI.t, LV = W.LEVELS, KEY = 'walk.v1', pick = (o) => V.i18n.pick(o);
@@ -245,13 +245,13 @@
       const W_ = 1080, H_ = 1350, cv = document.createElement('canvas'); cv.width = W_; cv.height = H_; const g = cv.getContext('2d'), F = '-apple-system, "SF Pro Display", system-ui, "Segoe UI", Roboto, sans-serif';
       const bg = g.createLinearGradient(0, 0, 0, H_); bg.addColorStop(0, '#1A1F2E'); bg.addColorStop(1, '#0B0D14'); g.fillStyle = bg; g.fillRect(0, 0, W_, H_);
       const mini = document.createElement('canvas'); UI.drawMini(mini, level, W.initial(level), [W_, 760]); g.drawImage(mini, 0, 150);
-      g.fillStyle = '#F5F5F7'; g.font = '700 64px ' + F; g.fillText('Vantage', 72, 118);
-      g.fillStyle = 'rgba(245,245,247,.62)'; g.font = '500 34px ' + F; g.textAlign = 'right'; g.fillText(daily ? t('share.daily', { n: dailyDay }).replace('Vantage · ', '') : t('hud.level', { n: li + 1 }) + ' · ' + pick(level.name), W_ - 72, 114); g.textAlign = 'left';
+      g.fillStyle = '#F5F5F7'; g.font = '700 64px ' + F; g.fillText('Askew', 72, 118);
+      g.fillStyle = 'rgba(245,245,247,.62)'; g.font = '500 34px ' + F; g.textAlign = 'right'; g.fillText(daily ? t('share.daily', { n: dailyDay }).replace('Askew · ', '') : t('hud.level', { n: li + 1 }) + ' · ' + pick(level.name), W_ - 72, 114); g.textAlign = 'left';
       g.font = '700 120px ' + F; g.fillStyle = '#F6D898'; g.fillText('★'.repeat(lastStars), 72, 1090); g.fillStyle = 'rgba(255,255,255,.18)'; g.fillText('★'.repeat(3 - lastStars), 72 + 120 * 0.97 * lastStars, 1090);
       g.fillStyle = '#F5F5F7'; g.font = '600 48px ' + F; g.fillText(moves + ' / ' + parOf(level) + (V.i18n.lang() === 'ru' ? '  ходов' : '  moves'), 72, 1170);
       const col = { T: '#5CC6D9', W: '#F6D898', S: '#8FCF8A' }; const tr = trail.slice(0, 24).split(''); tr.forEach((c, i) => { g.fillStyle = col[c] || '#fff'; g.beginPath(); g.roundRect ? g.roundRect(72 + i * 40, 1214, 32, 32, 8) : g.rect(72 + i * 40, 1214, 32, 32); g.fill(); });
-      g.fillStyle = 'rgba(245,245,247,.45)'; g.font = '500 30px ' + F; g.fillText(location.host || 'vantage', 72, 1296);
-      cv.toBlob((b) => resolve(b ? new File([b], 'vantage.png', { type: 'image/png' }) : null), 'image/png');
+      g.fillStyle = 'rgba(245,245,247,.45)'; g.font = '500 30px ' + F; g.fillText(location.host || 'askew', 72, 1296);
+      cv.toBlob((b) => resolve(b ? new File([b], 'askew.png', { type: 'image/png' }) : null), 'image/png');
     });
   }
   async function share() {

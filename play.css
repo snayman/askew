@@ -1,4 +1,4 @@
-/* Vantage (walk): play HUD, dock, coach card, toast, win card. */
+/* Askew (walk): play HUD, dock, coach card, toast, win card. */
 .hud { position: absolute; inset: calc(var(--sat) + 16px) var(--gxr) calc(var(--sab) + 16px) var(--gx); display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; }
 .hud-top { display: flex; align-items: center; gap: 8px; }
 .hud-title { flex: 1; min-width: 0; height: 48px; border-radius: 24px; padding: 0 20px; display: flex; flex-direction: column; justify-content: center; line-height: 1.15; }

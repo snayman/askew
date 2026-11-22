@@ -1,4 +1,4 @@
-// Vantage UI helpers (no game rules): screens, toast, coach card, level cards with mini iso diagrams, how-to art, win stars.
+// Askew UI helpers (no game rules): screens, toast, coach card, level cards with mini iso diagrams, how-to art, win stars.
 // window.V.UI. Used by game.js.
 (function (root) {
   const V = (root.V = root.V || {}), W = root.W, doc = document;

@@ -1,4 +1,4 @@
-// Vantage audio: everything synthesized with Web Audio (no files). window.V.Audio
+// Askew audio: everything synthesized with Web Audio (no files). window.V.Audio
 // Calm, warm, gallery-like: mallet / kalimba / glass tones, soft pads, D major pentatonic.
 // Every method is a safe no-op when Web Audio is unavailable or before unlock().
 (function (root) {

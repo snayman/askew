@@ -1,4 +1,4 @@
-// Vantage i18n: V.i18n.t(key, params), setLang(l), lang(), pick({ru,en}), apply(root), onChange(fn).
+// Askew i18n: V.i18n.t(key, params), setLang(l), lang(), pick({ru,en}), apply(root), onChange(fn).
 // Markup: data-i18n="key" (text), data-i18n-aria="key" (aria-label), data-i18n-title="key" (title).
 (function (root) {
   const V = (root.V = root.V || {});
@@ -10,7 +10,7 @@
       'pw.title': 'Полная версия', 'pw.p': 'Все остальные главы и будущие уровни. Бесплатные главы остаются бесплатными навсегда. Разовая покупка, без подписки.', 'pw.buy': 'Купить полную версию', 'pw.restore': 'Восстановить покупку', 'pw.later': 'Позже', 'pw.bad': 'Покупка не завершена', 'pw.on': 'Полная версия открыта. Спасибо!', 'pw.open': 'Полная версия', 'pw.active': 'Полная версия · открыта', 'levels.pro': 'Полная версия',
       'hint.idle': 'Застрял? Нажми на лампочку: подскажу идею. Один раз на уровень',
       'daily.t': 'Уровень дня', 'daily.lock': 'Уровень дня · ещё {n}', 'daily.done': 'Пройден · завтра новый', 'daily.note': 'Новый уровень завтра', 'share.btn': 'Поделиться', 'share.copied': 'Скопировано', 'share.fail': 'Не удалось скопировать', 'photo.btn': 'Фото',
-      'share.level': 'Vantage · Уровень {n}', 'share.daily': 'Vantage · Уровень дня №{n}',
+      'share.level': 'Askew · Уровень {n}', 'share.daily': 'Askew · Уровень дня №{n}',
       'win.par': 'Эталон', 'win.tip.par': 'Ещё звезда: уложись в {n} или меньше', 'win.tip.hint': 'Ещё звезда: пройди без подсказок', 'win.tip.full': 'Идеальное прохождение',
       'dead.t': 'Отсюда путь не найти', 'dead.undo': 'Отменить ход', 'dead.reset': 'Заново', 'bar.reset': 'Уровень сброшен', 'bar.restore': 'Вернуть',
       'common.back': 'Назад', 'common.close': 'Закрыть', 'common.cancel': 'Отмена',
@@ -36,7 +36,7 @@
       'how.1.h': 'Вращай мир', 'how.1.p': 'Перетащи по экрану или нажми стрелки: вид переключается между четырьмя сторонами.',
       'how.2.h': 'Соединяй на экране', 'how.2.p': 'Если плитки касаются на экране, между ними можно пройти — даже когда в мире они далеко друг от друга.',
       'how.3.h': 'Дойди до кольца', 'how.3.p': 'Коснись плитки, чтобы идти. Рычаги открывают ворота, а блоки можно двигать.',
-      'set.foot': 'Vantage · {n} уровней · работает без интернета', 'how.legend': 'Что встретится', 'how.l.lever': 'Рычаг и ворота', 'how.l.lever.p': 'Наступи на рычаг, и ворота откроются. Переключатель меняет их туда и обратно.', 'how.l.slider': 'Блок-ползунок', 'how.l.slider.p': 'Его можно сдвинуть пальцем: новое положение соединяет другие плитки.', 'how.l.crumble': 'Хрупкая плитка', 'how.l.crumble.p': 'Рассыпается, как только ты с неё сошёл. Назад нельзя.', 'how.l.ghost': 'Призрак', 'how.l.ghost.p': 'Есть только с двух противоположных сторон. Поворачивай мир.', 'how.l.portal': 'Портал', 'how.l.portal.p': 'Шагни в кольцо, и выйдешь из парного.', 'how.l.twin': 'Двойник', 'how.l.twin.p': 'Повторяет твои шаги зеркально. Оба должны дойти до своих колец.', 'how.hint': 'Подсказка одна на уровень и открывает идею, а не весь путь.',
+      'set.foot': 'Askew · {n} уровней · работает без интернета', 'how.legend': 'Что встретится', 'how.l.lever': 'Рычаг и ворота', 'how.l.lever.p': 'Наступи на рычаг, и ворота откроются. Переключатель меняет их туда и обратно.', 'how.l.slider': 'Блок-ползунок', 'how.l.slider.p': 'Его можно сдвинуть пальцем: новое положение соединяет другие плитки.', 'how.l.crumble': 'Хрупкая плитка', 'how.l.crumble.p': 'Рассыпается, как только ты с неё сошёл. Назад нельзя.', 'how.l.ghost': 'Призрак', 'how.l.ghost.p': 'Есть только с двух противоположных сторон. Поворачивай мир.', 'how.l.portal': 'Портал', 'how.l.portal.p': 'Шагни в кольцо, и выйдешь из парного.', 'how.l.twin': 'Двойник', 'how.l.twin.p': 'Повторяет твои шаги зеркально. Оба должны дойти до своих колец.', 'how.hint': 'Подсказка одна на уровень и открывает идею, а не весь путь.',
       'how.stars': 'Звёзды: пройти уровень, обойтись без подсказок, уложиться в эталон ходов. Повороты мира не считаются.', 'how.go': 'К игре',
     },
     en: {
@@ -46,7 +46,7 @@
       'pw.title': 'Full version', 'pw.p': 'Every remaining chapter and all future levels. Free chapters stay free forever. One purchase, no subscription.', 'pw.buy': 'Buy the full version', 'pw.restore': 'Restore purchase', 'pw.later': 'Not now', 'pw.bad': 'Purchase was not completed', 'pw.on': 'Full version unlocked. Thank you!', 'pw.open': 'Full version', 'pw.active': 'Full version · unlocked', 'levels.pro': 'Full version',
       'hint.idle': 'Stuck? Tap the bulb for an idea. One per level',
       'daily.t': 'Daily level', 'daily.lock': 'Daily level · {n} to go', 'daily.done': 'Solved · new one tomorrow', 'daily.note': 'A new level tomorrow', 'share.btn': 'Share', 'share.copied': 'Copied', 'share.fail': 'Could not copy', 'photo.btn': 'Photo',
-      'share.level': 'Vantage · Level {n}', 'share.daily': 'Vantage · Daily level #{n}',
+      'share.level': 'Askew · Level {n}', 'share.daily': 'Askew · Daily level #{n}',
       'win.par': 'Par', 'win.tip.par': 'One more star: finish in {n} or fewer', 'win.tip.hint': 'One more star: finish without hints', 'win.tip.full': 'A perfect run',
       'dead.t': 'There is no way out from here', 'dead.undo': 'Undo move', 'dead.reset': 'Restart', 'bar.reset': 'Level restarted', 'bar.restore': 'Bring back',
       'common.back': 'Back', 'common.close': 'Close', 'common.cancel': 'Cancel',
@@ -72,7 +72,7 @@
       'how.1.h': 'Turn the world', 'how.1.p': 'Drag across the screen or press the arrows: the view snaps between four sides.',
       'how.2.h': 'Connect on screen', 'how.2.p': 'If two tiles touch on screen you can walk between them, even when they are far apart in the world.',
       'how.3.h': 'Reach the ring', 'how.3.p': 'Tap a tile to walk. Levers open gates, and some blocks can be slid.',
-      'set.foot': 'Vantage · {n} levels · works offline', 'how.legend': 'What you will meet', 'how.l.lever': 'Lever and gate', 'how.l.lever.p': 'Step on the lever and the gate opens. A toggle flips gates back and forth.', 'how.l.slider': 'Sliding block', 'how.l.slider.p': 'Drag it: its new position joins other tiles.', 'how.l.crumble': 'Fragile tile', 'how.l.crumble.p': 'Crumbles once you step off. No way back.', 'how.l.ghost': 'Ghost', 'how.l.ghost.p': 'Exists only from two opposite sides. Keep turning the world.', 'how.l.portal': 'Portal', 'how.l.portal.p': 'Step into a ring and you come out of its twin.', 'how.l.twin': 'Twin', 'how.l.twin.p': 'Copies your steps in a mirror. Both must reach their rings.', 'how.hint': 'One hint per level, and it gives the idea, not the whole path.',
+      'set.foot': 'Askew · {n} levels · works offline', 'how.legend': 'What you will meet', 'how.l.lever': 'Lever and gate', 'how.l.lever.p': 'Step on the lever and the gate opens. A toggle flips gates back and forth.', 'how.l.slider': 'Sliding block', 'how.l.slider.p': 'Drag it: its new position joins other tiles.', 'how.l.crumble': 'Fragile tile', 'how.l.crumble.p': 'Crumbles once you step off. No way back.', 'how.l.ghost': 'Ghost', 'how.l.ghost.p': 'Exists only from two opposite sides. Keep turning the world.', 'how.l.portal': 'Portal', 'how.l.portal.p': 'Step into a ring and you come out of its twin.', 'how.l.twin': 'Twin', 'how.l.twin.p': 'Copies your steps in a mirror. Both must reach their rings.', 'how.hint': 'One hint per level, and it gives the idea, not the whole path.',
       'how.stars': 'Stars: solve the level, use no hints, finish within par. Turning the world is free.', 'how.go': 'Back to game',
     },
   };
