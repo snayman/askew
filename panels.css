@@ -1,0 +1,20 @@
+/* Vantage (walk): level select cards. */
+.ch-head { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 10px; margin: 20px 4px 0; } .ch-head:first-child { margin-top: 0; }
+.ch-head span { color: var(--text-3); font-size: 13px; font-weight: 500; } .ch-head h3 { font-size: 24px; font-weight: 700; letter-spacing: -.02em; flex: 1; } .ch-head small { color: var(--text-3); font-size: 13px; font-variant-numeric: tabular-nums; }
+.lv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 16px; }
+.lv { position: relative; display: block; width: 100%; text-align: left; border-radius: 24px; overflow: hidden; background: var(--glass); border: 1px solid var(--line); box-shadow: var(--shadow); transition: transform .35s var(--spring), border-color .25s; --hue: var(--gold); }
+.is-active .lv { animation: rise .6s var(--ease) both; animation-delay: calc(var(--i, 0) * 70ms + 120ms); }
+.lv:not(.locked):active { transform: scale(.97); }
+@media (hover: hover) { .lv:not(.locked):hover { border-color: var(--hue); transform: translateY(-3px); } }
+.lv-art { position: relative; display: block; width: 100%; aspect-ratio: 2 / 1; background: radial-gradient(90% 90% at 50% 38%, #1E2538, #0F121B); border-bottom: 1px solid var(--line); }
+.lv-art canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; transition: filter .5s var(--ease), opacity .5s; }
+.lv.locked .lv-art canvas { filter: blur(6px) saturate(.2) brightness(.6); opacity: .8; }
+.lv-lock { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-2); } .lv-lock .ic { width: 32px; height: 32px; }
+.lv-n { position: absolute; left: 12px; top: 12px; height: 24px; min-width: 24px; padding: 0 8px; border-radius: 12px; background: rgba(11,13,20,.72); border: 1px solid var(--line-2); color: var(--hue); font: 700 12px/22px var(--sans); text-align: center; letter-spacing: .06em; }
+.lv-info { display: flex; align-items: center; gap: 12px; padding: 12px 16px 16px; }
+.lv-info > div { flex: 1; min-width: 0; }
+.lv-info h3 { font: 600 22px/1.15 var(--serif); letter-spacing: .02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lv-info small { color: var(--text-3); font-size: 12.5px; }
+.lv-stars { display: flex; gap: 2px; } .lv-stars .ic { width: 18px; height: 18px; color: rgba(255,255,255,.18); stroke-width: 1.4; } .lv-stars .ic.on { color: var(--gold); fill: var(--gold); }
+.lv.locked { opacity: .78; } .lv.locked h3 { color: var(--text-2); }
+.lv.current { border-color: rgba(233,194,122,.5); box-shadow: var(--shadow), 0 0 40px -16px rgba(233,194,122,.5); }

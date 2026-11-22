@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vantage</title>
+<meta name="description" content="Vantage: turn the world until distance disappears. An isometric puzzle about impossible paths. Play instantly, no sign-up.">
+<meta property="og:type" content="website"><meta property="og:title" content="Vantage — a puzzle about impossible paths"><meta property="og:description" content="Turn the world until distance disappears. 21 levels, a new daily level, no sign-up."><meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#0B0D14">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 10L84 29 50 48 16 29z' fill='%23E9C27A'/%3E%3Cpath d='M16 36l34 19v37L16 73z' fill='%23E9C27A' fill-opacity='.35'/%3E%3Cpath d='M84 36v37L50 92V55z' fill='%235CC6D9' fill-opacity='.5'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="play.css">
+<link rel="stylesheet" href="panels.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="g-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F6D898"/><stop offset="1" stop-color="#D9A859"/></linearGradient>
+    <symbol id="logo" viewBox="0 0 100 100">
+      <g stroke-linejoin="round" stroke-width="1.8">
+        <path d="M50 10 L84 29 L50 48 L16 29 Z" fill="url(#g-gold)" stroke="#F6D898"/>
+        <path d="M16 36 L50 55 L50 92 L16 73 Z" fill="#E9C27A" fill-opacity=".14" stroke="#E9C27A"/>
+        <path d="M84 36 L84 73 L50 92 L50 55 Z" fill="#5CC6D9" fill-opacity=".2" stroke="#5CC6D9"/>
+      </g>
+    </symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M14.5 5.5L8 12l6.5 6.5"/></symbol>
+    <symbol id="i-hint" viewBox="0 0 24 24"><path d="M12 3.5a5.5 5.5 0 0 0-3.2 10c.6.5 1 1.2 1 2V16.5h4.4v-1c0-.8.4-1.5 1-2A5.5 5.5 0 0 0 12 3.5z"/><path d="M10 20h4"/></symbol>
+    <symbol id="i-restart" viewBox="0 0 24 24"><path d="M5 12a7 7 0 1 0 2.2-5.1"/><path d="M5 4.5v4h4"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 6L4.5 10.5 9 15"/><path d="M5 10.5h9a5 5 0 0 1 0 10h-3"/></symbol>
+    <symbol id="i-rotl" viewBox="0 0 24 24"><path d="M12 5.5a7 7 0 1 1-6.4 4.2"/><path d="M5.2 4.6l.4 5.1 5.1-.5"/></symbol>
+    <symbol id="i-rotr" viewBox="0 0 24 24"><path d="M12 5.5a7 7 0 1 0 6.4 4.2"/><path d="M18.8 4.6l-.4 5.1-5.1-.5"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8.5 5.8v12.4L18.5 12z" fill="currentColor"/></symbol>
+    <symbol id="i-levels" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="4.5" width="7" height="7" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.6"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.7 9.7a2.4 2.4 0 1 1 3.5 2.1c-.8.4-1.2 1-1.2 1.8"/><path d="M12 16.7v.1"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4.5 7h8M17 7h2.5M4.5 17H7M11.5 17h8"/><circle cx="14.7" cy="7" r="2.2"/><circle cx="9.2" cy="17" r="2.2"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5.5" y="10.5" width="13" height="9" rx="2.4"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.2l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.6 6.8 19.4l1-5.9L3.5 9.4l5.9-.8z" stroke-linejoin="round"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5.5 12.5l4.2 4.2 8.8-9.2"/></symbol>
+    <symbol id="i-sound" viewBox="0 0 24 24"><path d="M5 9.5h3l4-3.5v12l-4-3.5H5z" stroke-linejoin="round"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></symbol>
+    <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 17.5V6l9-2v11.5"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="15.5" cy="15.5" r="2.5"/></symbol>
+    <symbol id="i-haptic" viewBox="0 0 24 24"><rect x="8" y="3.5" width="8" height="17" rx="2.2"/><path d="M4 8.5v7M20 8.5v7"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.5 3.5 5.4 3.5 8.5s-1 6-3.5 8.5c-2.5-2.5-3.5-5.4-3.5-8.5s1-6 3.5-8.5z"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24"><path d="M5 12h14M13.5 6.5L19 12l-5.5 5.5"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></symbol>
+    <symbol id="i-hand" viewBox="0 0 24 24"><path d="M9 11.2V5.4a1.7 1.7 0 0 1 3.4 0v5m0-.4a1.6 1.6 0 0 1 3.2 0v1m0-.3a1.6 1.6 0 0 1 3.2 0V15c0 3.6-2.4 6-5.8 6h-1.2c-2 0-3.3-.8-4.5-2.2L4.6 15a1.6 1.6 0 0 1 2.3-2.2L9 14.4"/></symbol>
+  </defs>
+</svg>
+
+<div id="app">
+  <canvas id="game" tabindex="-1" aria-label="Vantage"></canvas>
+
+  <!-- splash -->
+  <section class="screen is-active" data-screen="splash" aria-label="Vantage">
+    <div class="splash">
+      <svg class="splash-mark" aria-hidden="true"><use href="#logo"/></svg>
+      <h1 class="wordmark big">Vantage</h1>
+      <div class="loadline"><i></i></div>
+    </div>
+  </section>
+
+  <!-- menu -->
+  <section class="screen" data-screen="menu">
+    <div class="menu">
+      <div class="menu-head">
+        <svg class="menu-mark" aria-hidden="true"><use href="#logo"/></svg>
+        <h1 class="wordmark">Vantage</h1>
+        <i class="rule"></i>
+        <p class="tagline" data-i18n="app.tagline"></p>
+      </div>
+      <div class="menu-actions">
+        <button class="btn btn-primary btn-xl" id="b-play"><svg class="ic"><use href="#i-play"/></svg><span id="t-play" data-i18n="menu.play"></span></button>
+        <button class="btn btn-glass btn-lg" id="b-daily"><svg class="ic"><use href="#i-star"/></svg><span id="t-daily"></span></button>
+        <button class="btn btn-glass btn-lg" data-go="levels"><svg class="ic"><use href="#i-levels"/></svg><span data-i18n="menu.levels"></span></button>
+        <div class="row2">
+          <button class="btn btn-glass" data-go="howto"><svg class="ic"><use href="#i-help"/></svg><span data-i18n="menu.how"></span></button>
+          <button class="btn btn-glass" data-go="settings"><svg class="ic"><use href="#i-settings"/></svg><span data-i18n="menu.settings"></span></button>
+        </div>
+      </div>
+      <p class="credit" data-i18n="menu.credit"></p>
+    </div>
+  </section>
+
+  <!-- levels -->
+  <section class="screen" data-screen="levels">
+    <div class="page">
+      <header class="page-head">
+        <button class="icon-btn" data-go="menu" data-i18n-aria="common.back"><svg class="ic"><use href="#i-back"/></svg></button>
+        <div class="page-title"><h2 data-i18n="levels.title"></h2><p id="lv-sub"></p></div>
+      </header>
+      <div class="scroll"><div class="lv-grid" id="lv-grid"></div></div>
+    </div>
+  </section>
+
+  <!-- play -->
+  <section class="screen" data-screen="play">
+    <div class="hud">
+      <div class="hud-top">
+        <button class="icon-btn" id="h-back" data-i18n-aria="hud.menu"><svg class="ic"><use href="#i-back"/></svg></button>
+        <div class="hud-title glass"><span id="h-num"></span><strong id="h-name"></strong></div>
+        <div class="chip glass" aria-live="polite"><span class="chip-l" data-i18n="hud.moves"></span><b id="h-moves">0</b></div>
+      </div>
+      <div class="coach" id="coach" hidden>
+        <div class="coach-art" id="coach-art" aria-hidden="true"></div>
+        <div class="coach-body"><p id="coach-text"></p><small id="coach-sub"></small></div>
+        <button class="coach-x" id="coach-x" data-i18n-aria="coach.ok"><svg class="ic"><use href="#i-x"/></svg></button>
+      </div>
+      <div class="hud-bottom">
+        <div class="toast glass" id="toast" role="status" aria-live="polite"></div>
+        <div class="dead glass" id="dead" role="alert" hidden><p id="dead-t"></p><div class="dead-a" id="dead-a"></div></div>
+        <div class="dock">
+          <button class="icon-btn rot" id="h-rotl" data-i18n-aria="hud.rotl"><svg class="ic"><use href="#i-rotl"/></svg></button>
+          <div class="tools glass">
+            <button class="tool" id="h-undo" data-i18n-aria="hud.undo" data-i18n-title="hud.undo"><svg class="ic"><use href="#i-undo"/></svg></button>
+            <button class="tool" id="h-hint" data-i18n-aria="hud.hint" data-i18n-title="hud.hint"><svg class="ic"><use href="#i-hint"/></svg><i class="badge" id="h-hints" hidden></i></button>
+            <button class="tool" id="h-reset" data-i18n-aria="hud.reset" data-i18n-title="hud.reset"><svg class="ic"><use href="#i-restart"/></svg></button>
+          </div>
+          <button class="icon-btn rot" id="h-rotr" data-i18n-aria="hud.rotr"><svg class="ic"><use href="#i-rotr"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <div class="win" id="win" hidden>
+      <div class="win-card" role="dialog" aria-labelledby="win-t">
+        <i class="rule"></i>
+        <h2 id="win-t" data-i18n="win.title"></h2>
+        <p class="win-lv" id="win-lv"></p>
+        <div class="stars" id="win-stars"></div>
+        <dl class="win-stats">
+          <div><dt data-i18n="win.moves"></dt><dd id="win-moves"></dd></div>
+          <div><dt data-i18n="win.par"></dt><dd id="win-best"></dd></div>
+          <div><dt data-i18n="win.hints"></dt><dd id="win-hints"></dd></div>
+        </dl>
+        <p class="win-tip" id="win-tip"></p>
+        <p class="win-note" id="win-note" hidden data-i18n="win.last"></p>
+        <div class="win-actions">
+          <button class="btn btn-primary btn-lg" id="win-next"><span data-i18n="win.next"></span><svg class="ic"><use href="#i-next"/></svg></button>
+          <div class="row2"><button class="btn btn-glass" id="win-levels" data-i18n="win.levels"></button><button class="btn btn-glass" id="win-replay" data-i18n="win.replay"></button></div>
+          <div class="row2"><button class="btn btn-glass" id="win-share" data-i18n="share.btn"></button><button class="btn btn-glass" id="win-photo" data-i18n="photo.btn"></button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- settings -->
+  <section class="screen" data-screen="settings">
+    <div class="page narrow">
+      <header class="page-head">
+        <button class="icon-btn" data-go="back" data-i18n-aria="common.back"><svg class="ic"><use href="#i-back"/></svg></button>
+        <div class="page-title"><h2 data-i18n="set.title"></h2></div>
+      </header>
+      <div class="scroll">
+        <div class="panel">
+          <div class="set-row"><span class="set-ic"><svg class="ic"><use href="#i-globe"/></svg></span><span class="set-text"><b data-i18n="set.lang"></b></span>
+            <div class="seg" role="group"><button data-lang="ru" aria-pressed="true">RU</button><button data-lang="en" aria-pressed="false">EN</button></div></div>
+          <div class="set-row"><span class="set-ic"><svg class="ic"><use href="#i-sound"/></svg></span><span class="set-text"><b data-i18n="set.sound"></b><small data-i18n="set.sound.s"></small></span>
+            <button class="switch" role="switch" data-set="sound" aria-checked="true" data-i18n-aria="set.sound"></button></div>
+          <div class="set-row"><span class="set-ic"><svg class="ic"><use href="#i-music"/></svg></span><span class="set-text"><b data-i18n="set.music"></b><small data-i18n="set.music.s"></small></span>
+            <button class="switch" role="switch" data-set="music" aria-checked="true" data-i18n-aria="set.music"></button></div>
+          <div class="set-row"><span class="set-ic"><svg class="ic"><use href="#i-haptic"/></svg></span><span class="set-text"><b data-i18n="set.haptics"></b><small data-i18n="set.haptics.s"></small></span>
+            <button class="switch" role="switch" data-set="haptics" aria-checked="true" data-i18n-aria="set.haptics"></button></div>
+        </div>
+        <button class="btn btn-glass btn-lg" id="b-pro" hidden><svg class="ic"><use href="#i-star"/></svg><span id="t-pro"></span></button>
+        <button class="btn btn-glass btn-lg" id="b-support" hidden><svg class="ic"><use href="#i-next"/></svg><span data-i18n="pw.support"></span></button>
+        <button class="btn btn-danger" id="b-reset"><svg class="ic"><use href="#i-trash"/></svg><span data-i18n="set.reset"></span></button>
+      </div>
+    </div>
+    <div class="modal" id="modal" hidden>
+      <div class="modal-card" role="alertdialog">
+        <h3 data-i18n="set.reset.q"></h3><p data-i18n="set.reset.p"></p>
+        <div class="modal-actions"><button class="btn btn-glass" id="m-cancel" data-i18n="common.cancel"></button><button class="btn btn-danger solid" id="m-ok" data-i18n="set.reset.go"></button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- full version offer (only used when config.js sets buyUrl) -->
+  <div class="modal" id="offer" hidden style="z-index:8">
+    <div class="modal-card" role="dialog" aria-labelledby="offer-t">
+      <h3 id="offer-t"></h3><p id="offer-p"></p>
+      <a class="btn btn-primary btn-lg" id="offer-buy" target="_blank" rel="noopener" style="margin-top:16px;width:100%"></a>
+      <label class="offer-l" for="offer-code" data-i18n="pw.code"></label>
+      <div class="offer-row"><input id="offer-code" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="…"><button class="btn btn-glass" id="offer-ok" data-i18n="pw.ok"></button></div>
+      <p class="offer-msg" id="offer-msg" role="status"></p>
+      <button class="btn btn-glass" id="offer-x" style="width:100%;margin-top:8px" data-i18n="pw.later"></button>
+    </div>
+  </div>
+
+  <!-- how to -->
+  <section class="screen" data-screen="howto">
+    <div class="page narrow">
+      <header class="page-head">
+        <button class="icon-btn" data-go="back" data-i18n-aria="common.back"><svg class="ic"><use href="#i-back"/></svg></button>
+        <div class="page-title"><h2 data-i18n="how.title"></h2><p data-i18n="how.sub"></p></div>
+      </header>
+      <div class="scroll" id="how-list"></div>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="config.js"></script>
+<script src="src/world.js"></script>
+<script src="src/levels.js"></script>
+<script src="src/i18n.js"></script>
+<script src="src/audio.js"></script>
+<script src="src/scene-fx.js"></script>
+<script src="src/scene.js"></script>
+<script src="src/ui.js"></script>
+<script src="src/game.js"></script>
+<script>if ('serviceWorker' in navigator && /^(https:|http:\/\/localhost)/.test(location.href)) navigator.serviceWorker.register('sw.js').catch(function () {});</script>
+</body>
+</html>

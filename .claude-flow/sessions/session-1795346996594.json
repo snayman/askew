@@ -1,0 +1,14 @@
+{
+  "id": "session-1795346996594",
+  "startedAt": "2026-11-22T11:29:56.594Z",
+  "cwd": "/Users/snayman/Library/Application Support/Claude/scratch-workspaces/139414df-d6dc-475c-afb6-069af20dff90/672a260c-06d0-4406-a833-499199a2ee27/scratch-2026-11-21-758c3a/walk",
+  "context": {},
+  "metrics": {
+    "edits": 48,
+    "commands": 0,
+    "tasks": 0,
+    "errors": 0
+  },
+  "endedAt": "2026-11-22T14:06:25.426Z",
+  "duration": 9388832
+}
