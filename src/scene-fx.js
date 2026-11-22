@@ -1,6 +1,6 @@
 // Scene helpers (geometry, figure, particles, background, seams). Needs global THREE (r128) and src/world.js. Browser: W.SceneFx.
 (function (root) {
-  const T = root.THREE, GOLD = 0xE9C27A;
+  const T = root.THREE, GOLD = 0xEDE4CF;
   let PLANE = null, GLOW = null;
   const plane = () => PLANE || (PLANE = new T.PlaneGeometry(1, 1));
 
@@ -33,7 +33,7 @@
   }
   function arrowTex() {
     const c = document.createElement('canvas'); c.width = c.height = 512; const x = c.getContext('2d');
-    x.strokeStyle = '#E9C27A'; x.fillStyle = '#E9C27A'; x.lineWidth = 16; x.lineCap = 'round'; x.shadowColor = '#E9C27A'; x.shadowBlur = 24;
+    x.strokeStyle = '#EDE4CF'; x.fillStyle = '#EDE4CF'; x.lineWidth = 16; x.lineCap = 'round'; x.shadowColor = '#EDE4CF'; x.shadowBlur = 24;
     for (let k = 0; k < 2; k++) {
       const a0 = k * Math.PI + 0.25, a1 = a0 + 1.9, R = 205;
       x.beginPath(); x.arc(256, 256, R, a0, a1); x.stroke();
@@ -43,21 +43,20 @@
     return new T.CanvasTexture(c);
   }
 
-  // Small rounded character: pill body, sphere head, gold scarf with a tail. Faces +z.
+  // A faceless hooded traveller (tapered cloak, round head, soft hood, one scarlet scarf with a tail). Faces +z. Height ~0.7.
   function makeFigure(o) {
     o = o || {};
     const g = new T.Group(), body = new T.Group(); g.add(body);
-    const mB = new T.MeshLambertMaterial({ color: o.body || 0xF1E8D6, emissive: o.bodyE || 0x2b2519 }), mS = new T.MeshLambertMaterial({ color: o.scarf || GOLD, emissive: o.scarfE || 0x6b5424 });
-    const H = 0.34, R = 0.15, pr = [];
-    for (let i = 0; i <= 8; i++) { const a = -Math.PI / 2 + i / 8 * Math.PI / 2; pr.push(new T.Vector2(Math.max(0.001, Math.cos(a) * R), R + Math.sin(a) * R)); }
-    for (let i = 1; i <= 8; i++) { const a = i / 8 * Math.PI / 2; pr.push(new T.Vector2(Math.max(0.001, Math.cos(a) * R * 0.92), H - R + 0.04 + Math.sin(a) * R)); }
-    const torso = new T.Mesh(new T.LatheGeometry(pr, 18), mB); body.add(torso);
-    const head = new T.Mesh(new T.SphereGeometry(0.115, 18, 14), mB); head.position.y = H + 0.05; body.add(head);
-    const eyeM = new T.MeshBasicMaterial({ color: 0x1b1f2c });
-    for (const sx of [-1, 1]) { const e = new T.Mesh(new T.SphereGeometry(0.017, 8, 6), eyeM); e.position.set(sx * 0.04, H + 0.07, 0.1); body.add(e); }
-    const sc = new T.Mesh(new T.TorusGeometry(0.115, 0.032, 8, 20), mS); sc.rotation.x = Math.PI / 2; sc.position.y = H - 0.07; body.add(sc);
-    const tail = new T.Group(); tail.position.set(-0.08, H - 0.07, -0.1); const tm = new T.Mesh(new T.BoxGeometry(0.05, 0.15, 0.025), mS); tm.position.y = -0.07; tail.add(tm); body.add(tail);
-    g.userData = { body, head, tail, mats: [mB, mS] }; return g;
+    const mB = new T.MeshLambertMaterial({ color: o.body || 0xEFE8DA, emissive: o.bodyE || 0x2a261c }), mH = new T.MeshLambertMaterial({ color: o.hood || 0xE4DBC7, emissive: o.bodyE || 0x2a261c }), mS = new T.MeshLambertMaterial({ color: o.scarf || 0xC8202B, emissive: o.scarfE || 0x3a070c });
+    const pr = [new T.Vector2(0.001, 0)];
+    for (let i = 0; i <= 14; i++) { const t = i / 14, y = 0.02 + 0.36 * t; pr.push(new T.Vector2(0.085 + 0.125 * Math.pow(1 - t, 1.25) + 0.02 * Math.sin(Math.PI * t), y)); }
+    pr.push(new T.Vector2(0.001, 0.4));
+    const torso = new T.Mesh(new T.LatheGeometry(pr, 22), mB); body.add(torso);
+    const head = new T.Mesh(new T.SphereGeometry(0.1, 20, 16), mB); head.position.y = 0.47; body.add(head);
+    const hood = new T.Mesh(new T.ConeGeometry(0.112, 0.2, 22), mH); hood.position.set(0, 0.125, 0); hood.rotation.z = 0.14; head.add(hood);
+    const sc = new T.Mesh(new T.TorusGeometry(0.1, 0.034, 10, 24), mS); sc.rotation.x = Math.PI / 2; sc.position.y = 0.375; body.add(sc);
+    const tail = new T.Group(); tail.position.set(-0.07, 0.375, -0.07); const tm = new T.Mesh(new T.BoxGeometry(0.06, 0.22, 0.022), mS); tm.position.y = -0.105; tail.add(tm); body.add(tail);
+    g.userData = { body, head, tail, headY: 0.47, mats: [mB, mH, mS] }; return g;
   }
 
   // Additive point pool with per-point size/alpha/colour. Attributes are plain arrays you edit, then call .flush().
@@ -91,7 +90,7 @@
   function makeSeam() {
     const g = new T.Group(), tex = glowTex(), p = {};
     for (const k of ['halo', 'core', 'edge', 'd1', 'd2']) {
-      const m = new T.MeshBasicMaterial({ map: tex, color: k === 'core' ? 0xFFF1CF : GOLD, transparent: true, opacity: 0, depthTest: false, depthWrite: false, blending: T.AdditiveBlending });
+      const m = new T.MeshBasicMaterial({ map: tex, color: k === 'core' ? 0xFFF8E6 : GOLD, transparent: true, opacity: 0, depthTest: false, depthWrite: false, blending: T.AdditiveBlending });
       const me = new T.Mesh(plane(), m); me.renderOrder = 20; g.add(me); p[k] = me;
     }
     g.userData = p; return g;

@@ -44,7 +44,7 @@
 
   // ---- mini iso diagram of a level at its start camera (same projection as the world rules) ----
   const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-  const TOP = { floor: '#4A5680', start: '#5CC6D9', goal: '#F6D898', switch: '#C79BF2', gate: '#C79BF2', crumble: '#B98A66', phase: '#6FD3E6', toggle: '#C79BF2', warp: '#B58CFF', twin: '#6FD3E6', tgoal: '#6FD3E6' };
+  const TOP = { floor: '#3F5F50', start: '#8FD6B8', goal: '#EDE4CF', switch: '#D9CFB8', gate: '#8FD6B8', crumble: '#A9633F', phase: '#8FD6B8', toggle: '#D9CFB8', warp: '#EDE4CF', twin: '#7FE3B8', tgoal: '#7FE3B8' };
   function shade(hex, k) { const n = parseInt(hex.slice(1), 16); const c = (s) => Math.max(0, Math.min(255, Math.round(((n >> s) & 255) * k))); return 'rgb(' + c(16) + ',' + c(8) + ',' + c(0) + ')'; }
   function drawMini(cv, level, st, sz) {   // sz = [w, h] draws at an exact pixel size (used for the share picture)
     const r = sz ? { width: sz[0], height: sz[1] } : cv.getBoundingClientRect(), dpr = sz ? 1 : Math.min(2, root.devicePixelRatio || 1);
@@ -58,16 +58,16 @@
     const P = (q) => [q[0] * k + ox, q[1] * k + oy];
     const poly = (pts, fill, stroke, dash) => { g.beginPath(); pts.forEach((q, i) => { const s = P(pr(q)); i ? g.lineTo(s[0], s[1]) : g.moveTo(s[0], s[1]); }); g.closePath(); if (fill) { g.fillStyle = fill; g.fill(); } if (stroke) { g.setLineDash(dash || []); g.strokeStyle = stroke; g.lineWidth = Math.max(1, dpr); g.stroke(); } };
     items.forEach(({ tl, p }) => {
-      const [x, y, z] = p, base = tl.slider ? '#8FCF8A' : tl.kind === 'phase' && tl.ph ? '#FFC857' : TOP[tl.kind] || TOP.floor, gate = (tl.kind === 'gate' && !tl.inv) || tl.kind === 'phase', a = tl.kind === 'phase' ? 0.55 : gate ? 0.35 : 1;
+      const [x, y, z] = p, base = tl.slider ? '#6FA88A' : tl.kind === 'phase' && tl.ph ? '#EDE4CF' : TOP[tl.kind] || TOP.floor, gate = (tl.kind === 'gate' && !tl.inv) || tl.kind === 'phase', a = tl.kind === 'phase' ? 0.55 : gate ? 0.35 : 1;
       g.globalAlpha = a;
       const sides = [[[1, 0, 0], [[x + 1, y, z], [x + 1, y + 1, z], [x + 1, y + 1, z + 1], [x + 1, y, z + 1]], .7], [[-1, 0, 0], [[x, y, z], [x, y + 1, z], [x, y + 1, z + 1], [x, y, z + 1]], .7],
         [[0, 0, 1], [[x, y, z + 1], [x, y + 1, z + 1], [x + 1, y + 1, z + 1], [x + 1, y, z + 1]], .5], [[0, 0, -1], [[x, y, z], [x, y + 1, z], [x + 1, y + 1, z], [x + 1, y, z]], .5]];
-      sides.forEach(([n, q, s]) => { if (dot(n, b.dir) > 0) poly(q, shade(base === TOP.floor ? '#3A4468' : base, s * (base === TOP.floor ? 1 : .75)), 'rgba(0,0,0,.35)'); });
-      if (tl.kind === 'goal') { const c = P(pr([x + .5, y + 1, z + .5])); g.shadowColor = '#E9C27A'; g.shadowBlur = 18 * dpr; poly([[x, y + 1, z], [x + 1, y + 1, z], [x + 1, y + 1, z + 1], [x, y + 1, z + 1]], base); g.shadowBlur = 0; g.beginPath(); g.arc(c[0], c[1], k * .16, 0, 7); g.fillStyle = '#fff'; g.fill(); }
-      else poly([[x, y + 1, z], [x + 1, y + 1, z], [x + 1, y + 1, z + 1], [x, y + 1, z + 1]], gate ? null : base, gate ? (tl.kind === 'phase' ? base : '#C79BF2') : 'rgba(255,255,255,.18)', gate ? [4 * dpr, 3 * dpr] : null);
+      sides.forEach(([n, q, s]) => { if (dot(n, b.dir) > 0) poly(q, shade(base === TOP.floor ? '#1C3329' : base, s * (base === TOP.floor ? 1 : .75)), 'rgba(0,0,0,.35)'); });
+      if (tl.kind === 'goal') { const c = P(pr([x + .5, y + 1, z + .5])); g.shadowColor = '#EDE4CF'; g.shadowBlur = 18 * dpr; poly([[x, y + 1, z], [x + 1, y + 1, z], [x + 1, y + 1, z + 1], [x, y + 1, z + 1]], base); g.shadowBlur = 0; g.beginPath(); g.arc(c[0], c[1], k * .16, 0, 7); g.fillStyle = '#fff'; g.fill(); }
+      else poly([[x, y + 1, z], [x + 1, y + 1, z], [x + 1, y + 1, z + 1], [x, y + 1, z + 1]], gate ? null : base, gate ? (tl.kind === 'phase' ? base : '#8FD6B8') : 'rgba(255,255,255,.18)', gate ? [4 * dpr, 3 * dpr] : null);
       if (tl.kind === 'phase') { const c = P(pr([x + .5, y + 1, z + .5])), r = k * .13; g.beginPath(); if (tl.ph) { g.moveTo(c[0], c[1] - r * 1.2); g.lineTo(c[0] + r * 1.2, c[1]); g.lineTo(c[0], c[1] + r * 1.2); g.lineTo(c[0] - r * 1.2, c[1]); g.closePath(); } else g.arc(c[0], c[1], r, 0, 7); g.strokeStyle = base; g.lineWidth = Math.max(1.5, 1.6 * dpr); g.stroke(); }
-      if (tl.kind === 'warp' || tl.kind === 'twin' || tl.kind === 'tgoal') { const c = P(pr([x + .5, y + 1, z + .5])); g.beginPath(); g.arc(c[0], c[1], k * (tl.kind === 'twin' ? .13 : .2), 0, 7); g.fillStyle = tl.kind === 'twin' ? '#0B0D14' : 'rgba(11,13,20,.55)'; g.fill(); g.lineWidth = 1.6 * dpr; g.strokeStyle = tl.kind === 'warp' ? (tl.wc ? '#FF8FB1' : '#E3D2FF') : '#CFF4FA'; if (tl.kind !== 'twin') g.stroke(); }
-      if (tl.kind === 'start') { const c = P(pr([x + .5, y + 1, z + .5])); g.beginPath(); g.arc(c[0], c[1], k * .13, 0, 7); g.fillStyle = '#0B0D14'; g.fill(); }
+      if (tl.kind === 'warp' || tl.kind === 'twin' || tl.kind === 'tgoal') { const c = P(pr([x + .5, y + 1, z + .5])); g.beginPath(); g.arc(c[0], c[1], k * (tl.kind === 'twin' ? .13 : .2), 0, 7); g.fillStyle = tl.kind === 'twin' ? '#0A1210' : 'rgba(11,13,20,.55)'; g.fill(); g.lineWidth = 1.6 * dpr; g.strokeStyle = tl.kind === 'warp' ? (tl.wc ? '#8FD6B8' : '#EDE4CF') : '#CFF4E4'; if (tl.kind !== 'twin') g.stroke(); }
+      if (tl.kind === 'start') { const c = P(pr([x + .5, y + 1, z + .5])); g.beginPath(); g.arc(c[0], c[1], k * .13, 0, 7); g.fillStyle = '#0A1210'; g.fill(); }
       g.globalAlpha = 1; g.setLineDash([]);
     });
   }
@@ -101,12 +101,12 @@
   ];
   const G_ = (c, body) => '<svg viewBox="0 0 28 28" aria-hidden="true" style="color:' + c + '">' + body + '</svg>';
   const LEG = [
-    ['lever', '#C79BF2', '<circle cx="14" cy="14" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="14" cy="14" r="3.6" fill="currentColor"/>'],
-    ['slider', '#8FCF8A', '<rect x="5" y="6" width="18" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 14h8M15 11l3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>'],
-    ['crumble', '#E8A66E', '<rect x="5" y="6" width="18" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 8l4 6-3 3 4 5M19 8l-3 5 4 3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>'],
-    ['ghost', '#6FD3E6', '<path d="M14 5l9 9-9 9-9-9z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="3 2.5"/>'],
-    ['portal', '#B58CFF', '<circle cx="14" cy="14" r="10" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="14" cy="14" r="5.5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="14" cy="14" r="1.6" fill="currentColor"/>'],
-    ['twin', '#6FD3E6', '<ellipse cx="14" cy="17" rx="6" ry="6.5" fill="currentColor" opacity=".85"/><circle cx="14" cy="9" r="4" fill="currentColor"/><path d="M14 3v22" stroke="#0B0D14" stroke-width="1" opacity=".5"/>'],
+    ['lever', '#D9CFB8', '<circle cx="14" cy="14" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="14" cy="14" r="3.6" fill="currentColor"/>'],
+    ['slider', '#6FA88A', '<rect x="5" y="6" width="18" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 14h8M15 11l3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>'],
+    ['crumble', '#B4623C', '<rect x="5" y="6" width="18" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 8l4 6-3 3 4 5M19 8l-3 5 4 3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>'],
+    ['ghost', '#8FD6B8', '<path d="M14 5l9 9-9 9-9-9z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="3 2.5"/>'],
+    ['portal', '#EDE4CF', '<circle cx="14" cy="14" r="10" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="14" cy="14" r="5.5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="14" cy="14" r="1.6" fill="currentColor"/>'],
+    ['twin', '#7FE3B8', '<ellipse cx="14" cy="17" rx="6" ry="6.5" fill="currentColor" opacity=".85"/><circle cx="14" cy="9" r="4" fill="currentColor"/><path d="M14 3v22" stroke="#0B0D14" stroke-width="1" opacity=".5"/>'],
   ];
   const legend = () => '<h3 class="legend-h">' + t('how.legend') + '</h3><div class="legend">' + LEG.map(([k, c, body]) => '<div class="legend-i">' + G_(c, body) + '<div><b>' + t('how.l.' + k) + '</b><span>' + t('how.l.' + k + '.p') + '</span></div></div>').join('') + '</div><p class="how-note">' + t('how.hint') + '</p>';
   function buildHow() {

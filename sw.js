@@ -1,6 +1,6 @@
 // Offline support: network first (always fresh when online), cached copy when the network is gone. The whole app shell is cached on install, so the game opens offline after the first visit.
-const CACHE = 'askew-v4';
-const SHELL = ['./', 'index.html', 'config.js', 'style.css', 'play.css', 'panels.css', 'assets/transitions.css', 'vendor/three.min.js', 'src/world.js', 'src/levels.js', 'src/i18n.js', 'src/audio.js', 'src/scene-fx.js', 'src/scene.js', 'src/ui.js', 'src/game.js', 'manifest.webmanifest', 'assets/icon.svg', 'assets/icon-192.png'];
+const CACHE = 'askew-v5';
+const SHELL = ['./', 'index.html', 'config.js', 'style.css', 'theme.css', 'play.css', 'panels.css', 'assets/transitions.css', 'vendor/three.min.js', 'src/world.js', 'src/levels.js', 'src/i18n.js', 'src/audio.js', 'src/scene-fx.js', 'src/scene.js', 'src/ui.js', 'src/game.js', 'manifest.webmanifest', 'assets/icon.svg', 'assets/icon-192.png'];
 self.addEventListener('install', (e) => e.waitUntil(caches.open(CACHE).then((c) => Promise.all(SHELL.map((u) => c.add(u).catch(() => {})))).then(() => self.skipWaiting())));
 self.addEventListener('activate', (e) => e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim())));
 self.addEventListener('fetch', (e) => {
