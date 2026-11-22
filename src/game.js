@@ -395,8 +395,8 @@
     else if (k === 'escape') $('h-back').click(); else return;
     e.preventDefault();
   });
-  UI.on('settings', () => { $('set-foot').textContent = t('set.foot', { n: LV.length }); }); UI.on('menu', () => { refreshText(); backdrop(); }); UI.on('levels', () => { UI.buildLevels(save, startLevel); backdrop(); });
-  UI.on('settings', () => { applySettings(); backdrop(); }); UI.on('howto', () => { UI.buildHow(); backdrop(); });
+  UI.on('menu', () => { refreshText(); backdrop(); }); UI.on('levels', () => { UI.buildLevels(save, startLevel); backdrop(); });
+  UI.on('settings', () => { applySettings(); $('set-foot').textContent = t('set.foot', { n: LV.length }); backdrop(); }); UI.on('howto', () => { UI.buildHow(); backdrop(); });
   UI.on('play', () => { document.activeElement && document.activeElement.blur && document.activeElement.blur(); });
   root.addEventListener('resize', () => scene.resize());
   // Schedule the next frame FIRST and isolate errors: one bad frame must never stop the loop (that would freeze the whole game).
