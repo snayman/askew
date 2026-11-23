@@ -11,9 +11,8 @@
     if (name === 'back') name = 'menu';
     const prev = cur; cur = name; $('app').classList.toggle('on-menu', name === 'menu');
     screens.forEach((s) => { const on = s.dataset.screen === name; s.classList.toggle('is-active', on); s.inert = !on; s.setAttribute('aria-hidden', on ? 'false' : 'true'); });
-    if (hooks['*']) hooks['*'](name, prev);
-    if (hooks[name]) hooks[name](prev);
-    const f = doc.querySelector('.screen.is-active .btn-primary, .screen.is-active .icon-btn'); if (f && name !== 'play') try { f.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
+    [hooks['*'], hooks[name]].forEach((h, k) => { if (h) try { h(k ? prev : name, prev); } catch (e) { if (root.console) console.error('screen hook', name, e); } });   // a failing hook never blocks navigation
+    const f = doc.querySelector('.screen.is-active .btn-primary, .screen.is-active .icon-btn'); if (f && keyNav && name !== 'play') try { f.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
   }
 
   // toast (bottom of play screen)
@@ -33,8 +32,9 @@
       $('coach-text').textContent = text; $('coach-sub').textContent = sub || '';
       el.hidden = false; el.classList.remove('swap'); void el.offsetWidth; if (was) el.classList.add('swap');
       if (!was) { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; }
+      clearTimeout(this.timer); this.timer = setTimeout(() => this.hide(), 4200);   // the card never lingers: it steps aside after ~4 s (a tap on x still marks the tutorial done)
     },
-    hide() { this.on = false; $('coach').hidden = true; },
+    hide() { clearTimeout(this.timer); this.on = false; $('coach').hidden = true; },
   };
 
   function stars(n, el, big) {
@@ -72,24 +72,86 @@
     });
   }
 
-  function buildLevels(prog, onPick) {
-    const grid = $('lv-grid'); grid.innerHTML = ''; let solved = 0, lastCh = 0;
-    W.LEVELS.forEach((lv, i) => {
-      const pw = !!(V.paywall && V.paywall.locked(lv)), rec = prog.solved[lv.id], open = !pw && (i === 0 || !!prog.solved[W.LEVELS[i - 1].id] || W.LEVELS.slice(i).some((x) => prog.solved[x.id])), b = doc.createElement('button');
-      if (rec) solved++;
-      if (lv.ch && lv.ch !== lastCh) {
-        lastCh = lv.ch; const c = (W.CHAPTERS || []).find((x) => x.n === lv.ch), inCh = W.LEVELS.filter((x) => x.ch === lv.ch), done = inCh.filter((x) => prog.solved[x.id]).length, stars = inCh.reduce((s, x) => s + (prog.solved[x.id] ? prog.solved[x.id].stars : 0), 0);
-        const h = doc.createElement('div'); h.className = 'ch-head'; h.innerHTML = '<span>' + t('ch.n', { n: lv.ch }) + '</span><h3>' + (c ? V.i18n.pick(c.name) : '') + '</h3><small>' + done + '/' + inCh.length + ' · ' + stars + '/' + inCh.length * 3 + ' ★</small>'; grid.appendChild(h);
-      }
-      b.className = 'lv' + (open ? '' : ' locked') + (pw ? ' pro' : '') + (open && !rec ? ' current' : ''); b.style.setProperty('--i', i); b.style.setProperty('--hue', lv.hue);
-      b.disabled = !open && !pw; b.setAttribute('aria-label', (i + 1) + '. ' + V.i18n.pick(lv.name));
-      b.innerHTML = '<span class="lv-art"><canvas></canvas>' + (open ? '' : '<span class="lv-lock">' + SVG('i-lock') + '</span>') + '<span class="lv-n">' + (i + 1) + '</span></span>' +
-        '<span class="lv-info"><div><h3>' + V.i18n.pick(lv.name) + '</h3><small>' + (pw ? t('levels.pro') : open ? (rec ? t('levels.best', { n: rec.best }) : t('levels.new')) : t('levels.locked')) + '</small></div><span class="lv-stars">' +
-        [0, 1, 2].map((s) => SVG('i-star', rec && s < rec.stars ? 'on' : '')).join('') + '</span></span>';
-      b.addEventListener('click', () => { if (pw) V.paywall.offer(); else if (open) onPick(i); }); grid.appendChild(b);
+  // ---- chapter map: each chapter is a small drawn island (SVG, no filters), tinted by its own hue (see .cm.cN in theme.css), with its levels as nodes along a path ----
+  const CM_W = 320, CM_COLS = [56, 160, 264], CM_PITCH = 62, CM_TOP = 36;
+  function mapSvg(pts, n, H, solvedFlags) {
+    let sd = n * 9301 + 49297; const rnd = () => { sd = (sd * 9301 + 49297) % 233280; return sd / 233280 - .5; };
+    const x0 = 14, x1 = CM_W - 14, y0 = 12, y1 = H - 40, mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+    const base = [[x0 + 26, y0 + 6], [mx, y0 - 4], [x1 - 30, y0 + 8], [x1 + 4, y0 + 40], [x1 - 2, my + 20], [x1 - 24, y1 - 2], [mx + 20, y1 + 6], [x0 + 34, y1], [x0 - 4, y1 - 36], [x0 + 2, my - 10], [x0 - 2, y0 + 36]];
+    const poly = base.map((q) => [Math.round(q[0] + rnd() * 14), Math.round(q[1] + rnd() * 10)]);
+    const d = 'M' + poly.map((q) => q.join(' ')).join('L') + 'Z';
+    const ring = (k) => '<path class="cm-contour" vector-effect="non-scaling-stroke" transform="translate(' + mx + ' ' + my + ') scale(' + k + ') translate(' + -mx + ' ' + -my + ')" d="' + d + '"/>';
+    let g = '<path class="cm-cliff" d="' + d + '" transform="translate(0 8)"/><path class="cm-top" d="' + d + '"/>' + ring(.86) + ring(.7);
+    const f = (v) => Math.round(v * 10) / 10;
+    // lead-in: the path enters the island from its edge, so level 1 sits ON a path
+    const s0 = [Math.max(x0 + 14, pts[0][0] - 36), pts[0][1] + 10];
+    g += '<path class="cm-seg lead' + (solvedFlags[0] ? ' on' : '') + '" d="M' + s0[0] + ' ' + s0[1] + 'Q' + f(s0[0] + 14) + ' ' + f(pts[0][1] + 10) + ' ' + pts[0][0] + ' ' + pts[0][1] + '"/><circle class="cm-start" cx="' + s0[0] + '" cy="' + s0[1] + '" r="2.6"/>';
+    pts.slice(1).forEach((q, i) => {
+      const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = q, p3 = pts[Math.min(pts.length - 1, i + 2)];
+      g += '<path class="cm-seg' + (solvedFlags[i] ? ' on' : '') + '" d="M' + p1[0] + ' ' + p1[1] + 'C' + f(p1[0] + (p2[0] - p0[0]) / 6) + ' ' + f(p1[1] + (p2[1] - p0[1]) / 6) + ' ' + f(p2[0] - (p3[0] - p1[0]) / 6) + ' ' + f(p2[1] - (p3[1] - p1[1]) / 6) + ' ' + p2[0] + ' ' + p2[1] + '"/>';
     });
+    return '<svg class="cm-svg" viewBox="0 0 ' + CM_W + ' ' + H + '" aria-hidden="true" focusable="false">' + g + '</svg>';
+  }
+
+  // chapter emblems: small isometric tower / column silhouettes, one per chapter. box = [centre x, base y, half width, height, mode]
+  const EMB = [
+    [[15, 40, 9, 12], [33, 34, 9, 24]],                                            // 1 seam: two edges, two heights
+    [[24, 43, 11, 6], [24, 37, 5, 22], [24, 15, 8, 4]],                           // 2 mechanisms: a column with a capital
+    [[20, 43, 11, 10], [27, 33, 8, 10], [22, 23, 6, 8], [38, 15, 3.5, 3.5]],      // 3 fragile: a stack coming apart
+    [[24, 43, 10, 30, 'd']],                                                       // 4 ghosts: an outline only
+    [[24, 43, 5, 24], [24, 19, 15, 4]],                                            // 5 balance: a slab on a pillar
+    [[11, 43, 6, 27], [37, 43, 6, 27], [24, 16, 18, 4]],                           // 6 portals: an arch
+    [[24, 24, 8, 17], [24, 46, 8, 13, 'm']],                                       // 7 reflection: a column and its echo
+  ];
+  function emblem(n) {
+    const box = ([cx, by, w, h, m]) => {
+      const T = 'M' + cx + ' ' + (by - h - w / 2) + 'L' + (cx + w) + ' ' + (by - h) + 'L' + cx + ' ' + (by - h + w / 2) + 'L' + (cx - w) + ' ' + (by - h) + 'Z',
+        L = 'M' + (cx - w) + ' ' + (by - h) + 'L' + cx + ' ' + (by - h + w / 2) + 'L' + cx + ' ' + (by + w / 2) + 'L' + (cx - w) + ' ' + by + 'Z',
+        R = 'M' + (cx + w) + ' ' + (by - h) + 'L' + cx + ' ' + (by - h + w / 2) + 'L' + cx + ' ' + (by + w / 2) + 'L' + (cx + w) + ' ' + by + 'Z';
+      if (m === 'd') return '<g class="e-d"><path d="' + T + L + R + '"/></g>';
+      return '<g' + (m === 'm' ? ' class="e-m"' : '') + '><path class="e-l" d="' + L + '"/><path class="e-r" d="' + R + '"/><path class="e-t" d="' + T + '"/></g>';
+    };
+    return '<svg class="cm-emb" viewBox="0 0 48 48" aria-hidden="true" focusable="false">' + (n === 7 ? '<path class="e-line" d="M6 29H42"/>' : '') + EMB[(n - 1) % EMB.length].map(box).join('') + '</svg>';
+  }
+
+  let keyNav = false; doc.addEventListener('keydown', () => { keyNav = true; }, true); doc.addEventListener('pointerdown', () => { keyNav = false; }, true);
+
+  function buildLevels(prog, onPick) {
+    const grid = $('lv-grid'); grid.innerHTML = ''; let solved = 0;
+    const chs = (W.CHAPTERS || [{ n: 1 }]).map((c) => c.n), frag = doc.createDocumentFragment();
+    const isPw = (lv) => !!(V.paywall && V.paywall.locked(lv)), curIdx = W.LEVELS.findIndex((lv) => !prog.solved[lv.id] && !isPw(lv));
+    chs.forEach((cn) => {
+      const c = (W.CHAPTERS || []).find((x) => x.n === cn), inCh = W.LEVELS.map((lv, i) => ({ lv, i })).filter((o) => (o.lv.ch || 1) === cn);
+      if (!inCh.length) return;
+      const done = inCh.filter((o) => prog.solved[o.lv.id]).length, stars = inCh.reduce((s, o) => s + (prog.solved[o.lv.id] ? prog.solved[o.lv.id].stars : 0), 0), pwCh = inCh.every((o) => isPw(o.lv));
+      const rows = Math.ceil(inCh.length / 3), H = CM_TOP + (rows - 1) * CM_PITCH + 64;
+      const pts = inCh.map((o, k) => { const r = Math.floor(k / 3), col = r % 2 ? 2 - (k % 3) : k % 3; return [CM_COLS[col], CM_TOP + r * CM_PITCH + ((k * 7 + cn * 3) % 5 - 2) * 3]; });
+      const sec = doc.createElement('section'); sec.className = 'cm c' + ((cn - 1) % 7 + 1) + (pwCh ? ' pro' : '') + (done === inCh.length ? ' full' : '');
+      sec.setAttribute('aria-label', t('ch.n', { n: cn }) + (c ? '. ' + V.i18n.pick(c.name) : ''));
+      const line = t('chl.' + cn);
+      sec.innerHTML = '<header class="cm-head"><div class="cm-txt"><span class="cm-n">' + t('ch.n', { n: cn }) + (pwCh ? '<i class="cm-lock">' + SVG('i-lock') + '</i>' : '') + '</span><h3>' + (c ? V.i18n.pick(c.name) : '') + '</h3>' +
+        (line && line !== 'chl.' + cn ? '<p>' + line + '</p>' : '') + '</div><div class="cm-side">' + emblem(cn) + '<small>' + done + '/' + inCh.length + (stars ? ' · ' + stars + ' ★' : '') + '</small></div></header>';
+      const map = doc.createElement('div'); map.className = 'cm-map'; map.style.aspectRatio = CM_W + ' / ' + H;
+      map.innerHTML = mapSvg(pts, cn, H, inCh.map((o) => !!prog.solved[o.lv.id]));
+      inCh.forEach((o, k) => {
+        const lv = o.lv, i = o.i, pw = isPw(lv), rec = prog.solved[lv.id], open = !pw && (i === 0 || !!prog.solved[W.LEVELS[i - 1].id] || W.LEVELS.slice(i).some((x) => prog.solved[x.id])), b = doc.createElement('button');
+        if (rec) solved++;
+        b.className = 'cm-node' + (rec ? ' done' : '') + (open ? '' : ' locked') + (pw ? ' pro' : '') + (i === curIdx ? ' current' : '');
+        b.style.left = (pts[k][0] / CM_W * 100).toFixed(2) + '%'; b.style.top = (pts[k][1] / H * 100).toFixed(2) + '%';
+        b.disabled = !open && !pw;
+        b.setAttribute('aria-label', (i + 1) + '. ' + V.i18n.pick(lv.name) + ', ' + (pw ? t('levels.pro') : open ? (rec ? t('levels.best', { n: rec.best }) + ', ' + rec.stars + '/3 ★' : t('levels.new')) : t('levels.locked')));
+        b.innerHTML = '<span class="cm-dot">' + (i + 1) + '</span>' + (!open || pw ? '<span class="cm-lk" aria-hidden="true">' + SVG('i-lock') + '</span>' : '') + (rec ? '<span class="cm-st" aria-hidden="true">' + [0, 1, 2].map((s) => SVG('i-star', s < rec.stars ? 'on' : '')).join('') + '</span>' : '');
+        b.addEventListener('click', () => { if (pw) V.paywall.offer(); else if (open) onPick(i); }); map.appendChild(b);
+      });
+      sec.appendChild(map); frag.appendChild(sec);
+    });
+    grid.appendChild(frag);
     $('lv-sub').textContent = t('levels.sub', { n: solved, m: W.LEVELS.length });
-    requestAnimationFrame(() => { let k = 0; Array.from(grid.children).forEach((c) => { const cv = c.querySelector('canvas'); if (cv) { drawMini(cv, W.LEVELS[k], W.initial(W.LEVELS[k])); k++; } }); });
+    // bring the chapter you are on into view (the screen may still be fading in, so measure on the next frame)
+    requestAnimationFrame(() => {
+      const sc = grid.parentElement, cur = grid.querySelector('.cm-node.current'); if (!sc || !cur || !sc.clientHeight) return;
+      const dy = cur.getBoundingClientRect().top - sc.getBoundingClientRect().top; sc.scrollTo({ top: sc.scrollTop + dy - (sc.clientHeight - cur.offsetHeight) / 2, behavior: 'instant' });   // centred, instant (no smooth scroll: it would fight the screen fade-in and reduced motion)
+    });
   }
 
   // ---- how to ----

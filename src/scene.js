@@ -1,14 +1,15 @@
 // W.Scene.create(canvas) — Three.js r128 renderer for the "impossible world". Needs THREE, W (world.js), W.SceneFx (scene-fx.js).
 (function (root) {
-  const RMOT = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches; // reduced motion: camera and slider moves are instant
-  const T = root.THREE, W = root.W, FX = W.SceneFx, D2R = Math.PI / 180, GOLD = FX.GOLD;
+  const RMOT = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches; // read once; window.__reduced (true/false) overrides it for testing
+  const T = root.THREE, W = root.W, FX = W.SceneFx, { PAL, hex, WARPC, TWC } = W.ScenePal, D2R = Math.PI / 180, GOLD = FX.GOLD;
   const clamp = (x, a, b) => Math.max(a, Math.min(b, x)), lerp = (a, b, t) => a + (b - a) * t;
   const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2), mod = (a, n) => ((a % n) + n) % n;
+  const FRAME_UP = 0.14; // island sits a touch above the middle (HUD above is lighter than toolbar below)
   const sh = {}; // shared geometries / materials (disposed in s.dispose)
   const SLATE = 0x5f6a86, GLASS = 0xaec3e6;
 
   function create(canvas) {
-    const s = {}, pr = Math.min(root.devicePixelRatio || 1, 1.5), COSE = Math.cos(W.EL * D2R), SINE = Math.sin(W.EL * D2R);
+    const s = { reduced: root.__reduced != null ? !!root.__reduced : RMOT }, pr = Math.min(root.devicePixelRatio || 1, 1.5), COSE = Math.cos(W.EL * D2R), SINE = Math.sin(W.EL * D2R);
     const renderer = new T.WebGLRenderer({ canvas, antialias: (root.devicePixelRatio || 1) < 1.75, powerPreference: 'high-performance' });
     renderer.setPixelRatio(pr); renderer.setClearColor(0x0B0D14); renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
     const scene = new T.Scene(), cam = new T.OrthographicCamera(-1, 1, 1, -1, 0.1, 300), world = new T.Group();
@@ -26,7 +27,7 @@
 
     const fig = FX.makeFigure(); fig.visible = false; world.add(fig); fig.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     const FIG = 1.12; const figScale = (k) => fig.scale.setScalar(k * FIG), fig2Scale = (k) => fig2.scale.setScalar(k * FIG);
-    const TWC = 0x7FE3B8, fig2 = FX.makeFigure({ body: 0xCFE8DB, hood: 0xB4D4C4, head: 0x0A1612, bodyE: 0x0c1a14, scarf: TWC, scarfE: 0x0f3a2a }); fig2.visible = false; world.add(fig2); fig2.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    const fig2 = FX.makeFigure({ body: 0xD0E4EE, hood: 0xB2CAD6, head: 0x0A1218, bodyE: 0x0a1820, scarf: TWC, scarfE: 0x0f3040 }); fig2.visible = false; world.add(fig2); fig2.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     const shadow2 = new T.Mesh(FX.plane(), sh.dark); shadow2.rotation.x = -Math.PI / 2; shadow2.visible = false; world.add(shadow2);
     const shadow = new T.Mesh(FX.plane(), sh.dark); shadow.rotation.x = -Math.PI / 2; world.add(shadow);
     const hlRing = new T.Mesh(sh.ring, new T.MeshBasicMaterial({ color: 0xE0343A, transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending })); hlRing.rotation.x = -Math.PI / 2; hlRing.visible = false; world.add(hlRing);
@@ -38,28 +39,16 @@
 
     let hooks = {}, enabled = true, level = null, st = null, tiles = {}, slv = {}, seams = {}, seamPairs = [], seamA = 1;
     let ctr = new T.Vector3(), ext = [2, 2], rad = 3, az = 45, logical = 0, camAnim = null, walkS = null, win = null, hint = null, hl = null, disposed = false;
-    let lift = [0, 0], entry = null, camOff = 0, twTile = null, twAnim = null, time = 0, last = 0, W_ = 1, H_ = 1, figTile = null, yaw = 0, landSq = 0, drag = null, ptr = null;
+    let zb = 1, wk = 0, wkT = 0, hh = 1, arch = null, lift = [0, 0], entry = null, camOff = 0, twTile = null, twAnim = null, time = 0, last = 0, W_ = 1, H_ = 1, figTile = null, yaw = 0, landSq = 0, drag = null, ptr = null;
     const worldDirs = (a) => ({ r: [Math.cos(a * D2R), -Math.sin(a * D2R)], f: [-Math.sin(a * D2R), -Math.cos(a * D2R)] });
 
     // ---------- build ----------
     function clearWorld() {
-      for (const k in tiles) { world.remove(tiles[k].g); tiles[k].g.traverse((c) => { if (c.material && !Object.values(sh).includes(c.material)) c.material.dispose(); }); }
+      for (const k in tiles) { world.remove(tiles[k].g); if (tiles[k].cracks) tiles[k].cracks.geometry.dispose(); tiles[k].g.traverse((c) => { if (c.material && !Object.values(sh).includes(c.material)) c.material.dispose(); }); }
       for (const o of world.children.slice()) if (o.userData.lvl) { world.remove(o); o.traverse((c) => { if (c.material && !Object.values(sh).includes(c.material)) c.material.dispose(); }); }
-      for (const k in seams) { scene.remove(seams[k].g); } tiles = {}; slv = {}; seams = {}; seamPairs = [];
+      if (arch) { world.remove(arch); arch.geometry.dispose(); arch.material.dispose(); arch = null; }
+      for (const k in seams) { scene.remove(seams[k].g); Object.values(seams[k].g.userData).forEach((m) => m.material && m.material.dispose()); } tiles = {}; slv = {}; seams = {}; seamPairs = [];
     }
-    // One palette per chapter: tile faces (top, x-faces, z-faces), backdrop (top, bottom), glow behind the scene, sun, sky and bounce light.
-    const hex = (c) => { const k = new T.Color(c); return [k.r, k.g, k.b]; };
-    const mix = (a, b, t) => '#' + new T.Color(a).lerp(new T.Color(b), t).getHexString();
-    const P = (t, l, r, glow, bgDeep, bgLight) => ({ t, l, r, glow, top: bgDeep, bot: mix(bgDeep, bgLight, 0.55), sun: mix('#FFFFFF', '#F2E6CC', 0.5), sky: mix('#C8D8CF', bgLight, 0.5), gnd: mix(bgDeep, r, 0.5) });
-    const PAL = {
-      1: P('#CDC2A6', '#9A9078', '#585342', '#EDE4CF', '#0E1C17', '#2A4A3C'),   // bone stone on dark green
-      2: P('#3C6B55', '#1B3A2E', '#0C1C16', '#8FD6B8', '#07100E', '#1B4536'),   // emerald night
-      3: P('#6C706C', '#3F4140', '#202221', '#E0343A', '#0D0C0D', '#3A2326'),   // black marble
-      4: P('#8FB5A3', '#587A6B', '#2F4A3E', '#BFE3D0', '#0C1815', '#2C5245'),   // mist
-      5: P('#C0B59A', '#8C836E', '#4E4A3C', '#EDE4CF', '#101612', '#2C4033'),   // bone dusk
-      6: P('#5E1E22', '#38110F', '#1B0809', '#E0343A', '#0D0708', '#3A1517'),   // oxblood
-      7: P('#C9CFCA', '#8D9490', '#4C5350', '#9FE3C8', '#09110F', '#1F322A'),   // mirror
-    };
     const grainTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'), im = x.createImageData(128, 128); let seed = 7; const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
       for (let i = 0; i < 128 * 128; i++) { const v = 232 + (r() - 0.5) * 26 - (r() > 0.985 ? 38 : 0); im.data[i * 4] = im.data[i * 4 + 1] = im.data[i * 4 + 2] = v; im.data[i * 4 + 3] = 255; }
       x.putImageData(im, 0, 0); const tx = new T.CanvasTexture(c); tx.wrapS = tx.wrapT = T.RepeatWrapping; return tx; })();
@@ -67,9 +56,9 @@
     const geoCache = {}; const bevelFor = (p) => geoCache[p.t] || (geoCache[p.t] = FX.bevelGeo(0.05, { t: hex(p.t), x: hex(p.l), z: hex(p.r) }));
     let pal = PAL[1];
     const pilTex = (() => { const c = document.createElement('canvas'); c.width = 4; c.height = 64; const x = c.getContext('2d'), g = x.createLinearGradient(0, 64, 0, 0); g.addColorStop(0, 'rgba(255,255,255,.95)'); g.addColorStop(0.5, 'rgba(255,255,255,.3)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 4, 64); return new T.CanvasTexture(c); })();
-    const pilGeo = new T.CylinderGeometry(0.17, 0.2, 1.8, 14, 1, true);
-    const pillar = (col) => { const m = new T.Mesh(pilGeo, new T.MeshBasicMaterial({ map: pilTex, color: col, transparent: true, opacity: 0.5, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending })); m.position.y = 0.5 + 0.9; return m; };
-    const PHD = new T.RingGeometry(0.2, 0.3, 4, 1), WARPC = ['#EDE4CF', '#8FD6B8'];
+    const pilGeo = new T.CylinderGeometry(0.1, 0.13, 1.8, 14, 1, true), BEAM = 0xE6D2A6;
+    const pillar = (col) => { const m = new T.Mesh(pilGeo, new T.MeshBasicMaterial({ map: pilTex, color: col, transparent: true, opacity: 0.3, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending })); m.position.y = 0.5 + 0.9; return m; };
+    const PHD = new T.RingGeometry(0.2, 0.3, 4, 1);
     // Architecture: purely visual dressing, never changes what is walkable. Plinth and cornice on every block, arched doors and slit windows on side faces
     // that do not touch a neighbouring block (so seams stay clean). The mix depends on the chapter, picked per face from a hash so it is stable.
     const decoTex = (kind) => { const c = document.createElement('canvas'); c.width = 96; c.height = 144; const x = c.getContext('2d');
@@ -108,7 +97,7 @@
       if (d.kind === 'goal') {
         t.ring = new T.Mesh(sh.torus, new T.MeshBasicMaterial({ color: GOLD })); t.ring.rotation.x = Math.PI / 2; t.ring.position.y = 0.53;
         t.disc = new T.Mesh(sh.disc, goldMat(0.15)); t.disc.rotation.x = -Math.PI / 2; t.disc.position.y = 0.515;
-        t.halo = FX.glowSprite(GOLD, 1.5, 0.3); t.halo.position.y = 0.9; t.pil = pillar(GOLD); t.g.add(t.ring, t.disc, t.halo, t.pil);
+        t.halo = FX.glowSprite(BEAM, 1.3, 0.3); t.halo.position.y = 0.8; t.pil = pillar(BEAM); t.ring.material.color.set(0xE9DDBF); t.disc.material.color.set(BEAM); t.cs = new T.Mesh(FX.plane(), new T.MeshBasicMaterial({ map: FX.glowTex(), color: 0x000000, transparent: true, opacity: 0.38, depthWrite: false })); t.cs.rotation.x = -Math.PI / 2; t.cs.position.y = 0.507; t.cs.scale.setScalar(0.95); t.g.add(t.cs, t.ring, t.disc, t.halo, t.pil);
       } else if (d.kind === 'tgoal') {
         t.ring = new T.Mesh(sh.torus, new T.MeshBasicMaterial({ color: TWC })); t.ring.rotation.x = Math.PI / 2; t.ring.position.y = 0.53;
         t.disc = new T.Mesh(sh.disc, new T.MeshBasicMaterial({ color: TWC, transparent: true, opacity: 0.15, depthWrite: false, blending: T.AdditiveBlending })); t.disc.rotation.x = -Math.PI / 2; t.disc.position.y = 0.515;
@@ -119,7 +108,7 @@
         const wc = new T.Color(WARPC[d.wc || 0]); t.wcol = wc;
         t.pring = new T.Mesh(sh.ring, new T.MeshBasicMaterial({ color: wc, transparent: true, opacity: 0.85, side: T.DoubleSide })); t.pring.rotation.x = -Math.PI / 2; t.pring.position.y = 0.512; t.pring.scale.setScalar(0.9);
         t.ring = new T.Mesh(PHD, new T.MeshBasicMaterial({ color: wc, transparent: true, opacity: 0.9, side: T.DoubleSide })); t.ring.rotation.x = -Math.PI / 2; t.ring.position.y = 0.516; t.ring.scale.setScalar(1.15);
-        t.halo = FX.glowSprite(wc, 1.2, 0.35); t.halo.position.y = 0.7; t.mat.emissive.copy(wc).multiplyScalar(0.12); t.g.add(t.pring, t.ring, t.halo);
+        t.halo = FX.glowSprite(wc, 1.2, 0.35); t.halo.position.y = 0.7; t.mat.emissive.copy(wc).multiplyScalar(0.2); t.g.add(t.pring, t.ring, t.halo);
       } else if (d.kind === 'switch' || d.kind === 'toggle') {
         t.plate = new T.Mesh(sh.plate, new T.MeshLambertMaterial({ color: 0x1d2c25, emissive: hc, emissiveIntensity: 0.15 })); t.plate.position.y = 0.53;
         t.pring = new T.Mesh(sh.ring, goldMat(0.3)); t.pring.scale.setScalar(0.85); t.pring.rotation.x = -Math.PI / 2; t.pring.position.y = 0.512;
@@ -134,7 +123,7 @@
         const cp = [[-0.42, 0.1, -0.1, 0.05, -0.12, 0.35, 0.05, 0.12, 0.3, 0.45, 0.1, 0.1], [0.1, -0.44, 0.0, -0.18, -0.1, -0.05, 0.05, 0.14, 0.4, 0.3]]; const arr = [];
         for (const c of cp) for (let i = 0; i + 3 < c.length; i += 2) arr.push(c[i], 0.506, c[i + 1], c[i + 2], 0.506, c[i + 3]);
         const cg = new T.BufferGeometry(); cg.setAttribute('position', new T.Float32BufferAttribute(arr, 3));
-        t.cracks = new T.LineSegments(cg, new T.LineBasicMaterial({ color: 0x151a28, transparent: true, opacity: 0.85 })); t.g.add(t.cracks);
+        t.cracks = new T.LineSegments(cg, new T.LineBasicMaterial({ color: 0xF3E4C4, transparent: true, opacity: 0.9 })); t.cracks2 = new T.LineSegments(cg, new T.LineBasicMaterial({ color: 0x120805, transparent: true, opacity: 0.85 })); t.cracks2.position.set(0.012, -0.0015, 0.014); t.g.add(t.cracks2, t.cracks);
       } else if (d.kind === 'start') {
         const m = new T.Mesh(sh.ring, goldMat(0.22)); m.rotation.x = -Math.PI / 2; m.position.y = 0.512; m.scale.setScalar(0.8); t.g.add(m);
       }
@@ -158,7 +147,7 @@
       world.add(g);
     }
     s.setLevel = function (lv) {
-      clearWorld(); level = lv; pal = PAL[lv.ch || 1] || PAL[1]; const hue = pal.glow;
+      clearWorld(); s.reduced = root.__reduced != null ? !!root.__reduced : RMOT; level = lv; pal = PAL[lv.ch || 1] || PAL[1]; const hue = pal.glow;
       const U = bg.material.uniforms; U.hue.value.set(pal.glow); U.top.value.set(pal.top); U.bot.value.set(pal.bot);
       hemi.color.set(pal.sky); hemi.groundColor.set(pal.gnd); sun.color.set(pal.sun); renderer.setClearColor(pal.top);
       for (const d of lv.tiles) tiles[d.id] = buildTile(d, hue);
@@ -176,28 +165,40 @@
         ext[0] = Math.max(ext[0], Math.abs(q[0] * b.u[0] + q[1] * b.u[1] + q[2] * b.u[2])); ext[1] = Math.max(ext[1], Math.abs(q[0] * b.v[0] + q[1] * b.v[1] + q[2] * b.v[2]));
         rad = Math.max(rad, Math.hypot(q[0], q[2]));
       }
+      { const g = FX.archGeo(lv, { t: hex(pal.t), x: hex(pal.l), z: hex(pal.r) }, ctr, ext);   // vertical architecture: one merged mesh, purely visual
+        if (g) { const m = new T.MeshLambertMaterial({ color: 0xf0f0f0, vertexColors: true, map: grainTex, emissive: new T.Color(hue).multiplyScalar(0.05) }); arch = new T.Mesh(g, m); arch.castShadow = arch.receiveShadow = true; world.add(arch); } }
       logical = lv.cam || 0; az = W.camAz(logical); camAnim = null; walkS = win = hint = hl = null; seamA = 0; figOnTop(false); shadow.visible = true; twTile = null; twAnim = null; fig2.visible = false; fig2Scale(1); onTop(fig2, false);
       arrow.visible = hlRing.visible = false; sp.n = 0; sparks.arr.alpha.fill(0);
       { const e = rad + 4; const c = sun.shadow.camera; c.left = c.bottom = -e; c.right = c.top = e; c.updateProjectionMatrix(); }
       s.resize(); s.setState(W.initial(lv), false);
       // entrance: tiles rise one after another from the start tile outwards, the camera swings in, the walker drops in last
-      entry = null; camOff = 0; cam.zoom = 1;
-      if (!RMOT && lv.tiles.length) {
+      entry = null; camOff = 0; zb = 1; wk = wkT = 0;
+      if (lv.tiles.length) {
         const sp = (lv.tiles.find((x) => x.kind === 'start') || lv.tiles[0]).pos, ds = lv.tiles.map((x) => Math.hypot(x.pos[0] - sp[0], (x.pos[1] - sp[1]) * 1.4, x.pos[2] - sp[2])), mx = Math.max(1, ...ds);
-        lv.tiles.forEach((x, i) => { tiles[x.id].eDelay = 0.05 + 0.75 * ds[i] / mx; });
-        entry = { t0: performance.now(), dur: 2000, landed: false };
+        lv.tiles.forEach((x, i) => { tiles[x.id].eDelay = s.reduced ? 0 : 0.05 + 0.75 * ds[i] / mx; });
+        entry = { t0: performance.now(), dur: s.reduced ? 420 : 2000, landed: false };
+        if (arch) arch.visible = false;
         for (const k in tiles) { tiles[k].g.visible = false; } fig.visible = false; shadow.visible = false; fig2.visible = false; shadow2.visible = false;
       }
     };
     const eOut = (p) => 1 - Math.pow(1 - p, 3), eBack = (p) => { const c = 1.45; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); };
     function entryApply(nowp) {
       const el = s._freeze != null ? s._freeze : nowp - entry.t0;
+      if (s.reduced) {   // reduced motion: no swing, no drop-in; everything rises a hand's breadth into place in well under half a second
+        const p = clamp(el / entry.dur, 0, 1), e = eOut(p);
+        for (const k in tiles) { const t = tiles[k]; if (t.kind !== 'crumble' || !(t.gone > 0.985)) t.g.visible = true; t.g.position.y -= (1 - e) * 0.3; }
+        if (arch) { arch.visible = true; arch.position.y = -(1 - e) * 0.3; }
+        camOff = 0; zb = 1; fig.visible = shadow.visible = p > 0.5; if (twTile) fig2.visible = shadow2.visible = p > 0.5; if (p > 0.5) shadowAt(fig.position.y, 0);
+        if (p >= 1) { entry = null; if (arch) arch.position.y = 0; hooks.entered && hooks.entered(); }
+        return;
+      }
+      if (arch) { arch.visible = el > 120; arch.position.y = -(1 - eOut(clamp((el - 120) / 1100, 0, 1))) * 2.6; }
       for (const k in tiles) {
         const t = tiles[k], p = clamp((el - t.eDelay * 1000) / 650, 0, 1), e = eBack(p);
         if (t.kind !== 'crumble' || !(t.gone > 0.985)) t.g.visible = p > 0;
         t.g.position.y -= (1 - e) * 2.6; t.g.scale.setScalar(Math.max(0.001, e));
       }
-      const ck = clamp(el / 1500, 0, 1); camOff = -(1 - eOut(ck)) * 40; cam.zoom = 0.8 + 0.2 * eOut(ck);
+      const ck = clamp(el / 1500, 0, 1); camOff = -(1 - eOut(ck)) * 40; zb = 0.8 + 0.2 * eOut(ck);
       const f = clamp((el - 1000) / 750, 0, 1);
       if (f > 0) {
         fig.visible = true; shadow.visible = true; const d = eOut(f);
@@ -206,7 +207,7 @@
         if (f >= 1 && !entry.landed) { entry.landed = true; landSq = 1; burst(fig.position.x, fig.position.y + 0.03, fig.position.z, 14, 0.7, 0.5, 0.6, true); hooks.entered && hooks.entered(); }
       }
       else { fig.visible = false; shadow.visible = false; fig2.visible = false; shadow2.visible = false; }
-      if (el > entry.dur) { entry = null; camOff = 0; cam.zoom = 1; for (const k in tiles) { tiles[k].g.scale.setScalar(1); } figScale(1); fig2Scale(1); }
+      if (el > entry.dur) { entry = null; if (arch) { arch.visible = true; arch.position.y = 0; } camOff = 0; zb = 1; for (const k in tiles) { tiles[k].g.scale.setScalar(1); } figScale(1); fig2Scale(1); }
     }
 
     // ---------- state ----------
@@ -223,7 +224,7 @@
       for (const id in slv) {
         const v = slv[id], P = level.sliders.find((x) => x.id === id).positions, to = P[st.sl[id]];
         if (drag && drag.sl === id) continue; v.idx = st.sl[id];
-        if (animate) { v.from = v.cur.slice(); v.to = to.slice(); v.t0 = now; v.dur = RMOT ? 1 : 350; } else { v.cur = to.slice(); v.to = null; }
+        if (animate) { v.from = v.cur.slice(); v.to = to.slice(); v.t0 = now; v.dur = s.reduced ? 1 : 350; } else { v.cur = to.slice(); v.to = null; }
       }
       if (!walkS) { figTile = st.tile; if (!win) { fig.visible = true; figScale(1); shadow.visible = true; } topOf(figTile, fig.position); }
       if (st.tw) {
@@ -262,11 +263,11 @@
           t.press += (t.pressT - t.press) * f; t.plate.position.y = 0.53 - 0.035 * t.press; t.plate.material.emissiveIntensity = 0.15 + 1.2 * t.press; t.halo.material.opacity = 0.12 + 0.5 * t.press; t.pring.material.opacity = 0.3 + 0.5 * t.press;
         } else if (t.kind === 'crumble') {
           t.gone += (t.goneT - t.gone) * Math.min(1, dt * 4.5); const gn = t.gone; t.g.visible = gn < 0.985;
-          t.g.position.y -= gn * 0.7; t.mat.opacity = 1 - gn; t.rim.material.opacity = 0.34 * (1 - gn); t.cracks.material.opacity = 0.85 * (1 - gn);
+          t.g.position.y -= gn * 0.7; t.mat.opacity = 1 - gn; t.rim.material.opacity = 0.34 * (1 - gn); t.cracks.material.opacity = 0.9 * (1 - gn); t.cracks2.material.opacity = 0.85 * (1 - gn);
         } else if (t.kind === 'warp') {
           const p = 0.5 + 0.5 * Math.sin(time * 2.4 + (t.base[0] + t.base[2])); t.ring.rotation.z = time * 1.1; t.pring.scale.setScalar(0.82 + 0.1 * p); t.halo.material.opacity = 0.22 + 0.2 * p;
         } else if (t.kind === 'goal' || t.kind === 'tgoal') {
-          const p = 0.5 + 0.5 * Math.sin(time * 2.2); t.ring.rotation.z = time * 0.6; t.ring.scale.setScalar(1 + 0.05 * p); t.disc.material.opacity = 0.1 + 0.12 * p; t.halo.material.opacity = (win ? 0 : 0.32 + 0.16 * p); if (t.pil) { if (win && win.goal === t) { const u = clamp(win.t / 2.2, 0, 1); t.pil.material.opacity = 0.75 * Math.sin(Math.PI * Math.min(1, u * 1.1)); t.pil.scale.set(1 + 0.8 * u, 1 + 2.4 * ease(u), 1 + 0.8 * u); t.pil.position.y = 0.5 + 0.9 * t.pil.scale.y; } else if (win) t.pil.material.opacity = 0; else { t.pil.material.opacity = 0.12 + 0.08 * p; t.pil.scale.set(1, 1, 1); t.pil.position.y = 1.4; } }
+          const p = 0.5 + 0.5 * Math.sin(time * 2.2); t.ring.rotation.z = time * 0.6; t.ring.scale.setScalar(1 + 0.05 * p); t.disc.material.opacity = 0.07 + 0.07 * p; t.halo.material.opacity = (win ? 0 : 0.17 + 0.09 * p); if (t.pil) { if (win && win.goal === t) { const u = clamp(win.t / (s.reduced ? 1.1 : 2.2), 0, 1); t.pil.material.opacity = 0.5 * Math.sin(Math.PI * Math.min(1, u * 1.1)); t.pil.scale.set(1 + 0.8 * u, 1 + 2.4 * ease(u), 1 + 0.8 * u); t.pil.position.y = 0.5 + 0.9 * t.pil.scale.y; } else if (win) t.pil.material.opacity = 0; else { t.pil.material.opacity = 0.07 + 0.05 * p; t.pil.scale.set(1, 1, 1); t.pil.position.y = 1.4; } }
         }
         if (t.sl) { const ok = hooks.canSlide ? hooks.canSlide(t.sl) : true; t.halo2.material.opacity = (ok ? 0.22 + 0.12 * Math.sin(time * 2.6) : 0.05); t.grip.children.forEach((m) => (m.material.opacity = ok ? 0.8 : 0.25)); }
       }
@@ -274,18 +275,18 @@
 
     // ---------- camera ----------
     function placeCam() {
-      const a = (az + camOff) * D2R, R = 60; cam.position.set(ctr.x + Math.sin(a) * COSE * R, ctr.y + SINE * R, ctr.z + Math.cos(a) * COSE * R); cam.lookAt(ctr); cam.updateMatrixWorld(); cam.updateProjectionMatrix(); sun.position.copy(sunOff).applyQuaternion(cam.quaternion).add(ctr); sun.target.position.copy(ctr);
+      const a = (az + camOff) * D2R, R = 60; cam.position.set(ctr.x + Math.sin(a) * COSE * R, ctr.y + SINE * R, ctr.z + Math.cos(a) * COSE * R); cam.lookAt(ctr); cam.zoom = zb * (1 - 0.3 * wk); { const sh_ = hh * (FRAME_UP + 0.36 * wk); cam.top = hh - sh_; cam.bottom = -hh - sh_; } cam.updateMatrixWorld(); cam.updateProjectionMatrix(); sun.position.copy(sunOff).applyQuaternion(cam.quaternion).add(ctr); sun.target.position.copy(ctr);
     }
     s.setLift = (fy, fx) => { lift = [fy || 0, fx || 0]; if (level) s.resize(); };
     s.resize = function () {
       const r = canvas.getBoundingClientRect(); W_ = Math.max(2, r.width || canvas.clientWidth || 300); H_ = Math.max(2, r.height || canvas.clientHeight || 300);
       renderer.setSize(W_, H_, false); const asp = W_ / H_;
-      const hh = Math.max(1.4, ext[1] * 0.92 + 0.4, (ext[0] * 1.02 + 0.5) / asp), hw = hh * asp;
+      hh = Math.max(FX.FIT.min, ext[1] * FX.FIT.v[0] + FX.FIT.v[1], (ext[0] * FX.FIT.u[0] + FX.FIT.u[1]) / asp); const hw = hh * asp;
       cam.left = -hw; cam.right = hw; cam.top = hh; cam.bottom = -hh; if (lift[0] || lift[1]) cam.setViewOffset(W_, H_, lift[1] * W_, lift[0] * H_, W_, H_); else cam.clearViewOffset(); bg.material.uniforms.asp.value = asp; placeCam();
     };
     s.setCam = function (c, animate) {
       logical = mod(c, 4); const to = W.camAz(logical), d = mod(to - az + 180, 360) - 180;
-      if (animate === false || !level) { az = az + d; camAnim = null; } else camAnim = { from: az, to: az + d, t0: performance.now(), dur: RMOT ? 1 : 450 };
+      if (animate === false || !level) { az = az + d; camAnim = null; } else camAnim = { from: az, to: az + d, t0: performance.now(), dur: s.reduced ? 1 : 450 };
     };
     s.getCam = () => logical;
     s.isBusy = () => !!(camAnim || walkS || win);
@@ -306,7 +307,7 @@
       const inv = cam.matrixWorldInverse;
       for (const k in seams) {
         const m = seams[k]; m.a += clamp((m.want && settled ? 1 : 0) - m.a, -dt / 0.15, dt / 0.25);
-        if (!m.want && m.a <= 0) { scene.remove(m.g); delete seams[k]; continue; }
+        if (!m.want && m.a <= 0) { scene.remove(m.g); Object.values(m.g.userData).forEach((q) => q.material && q.material.dispose()); delete seams[k]; continue; }
         const A = tiles[m.p[0]], B = tiles[m.p[1]]; if (!A || !B) continue;
         topOf(A.id, vv).applyMatrix4(inv); topOf(B.id, vw).applyMatrix4(inv);
         const mx = (vv.x + vw.x) / 2, my = (vv.y + vw.y) / 2;
@@ -351,7 +352,7 @@
     // Frame pacing helpers: busy = something is moving (render at full rate); otherwise the game idles at ~30 fps. setScale lowers the render resolution on slow devices.
     s.busy = () => !!(entry || walkS || camAnim || win || drag || hint || twAnim || Object.values(slv).some((v) => v.to));
     s.setScale = (v) => { renderer.setPixelRatio(Math.min(pr, v)); sun.castShadow = v >= 1; s.resize(); };
-    s.pr = pr; s._dbg = { sun, hemi, rim, renderer };
+    s.pr = pr; s._dbg = { sun, hemi, rim, renderer, get arch() { return arch; } };
     s.screenOf = (id) => { const t = tiles[id]; if (!t) return null; const v = topOf(id, new T.Vector3()).project(cam), r = canvas.getBoundingClientRect(); return [r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height]; };
     s.teleport = function (id) {   // the walker was carried to another tile: puff of light at both ends, no glide
       const a = fig.position.clone(), b = topOf(id, new T.Vector3()); burst(a.x, a.y + 0.2, a.z, 16, 0.9, 0.9, 0.7, false); fig.position.copy(b); figTile = id; landSq = 1; burst(b.x, b.y + 0.2, b.z, 16, 0.9, 0.9, 0.7, false);
@@ -401,20 +402,20 @@
     // ---------- win ----------
     s.playWin = function (onDone) {
       if (win) return; const gl = Object.values(tiles).find((t) => t.kind === 'goal'); win = { t: 0, onDone, burst: 0, a0: az, goal: gl, wave: null }; if (gl) { const gp = gl.base; win.wave = Object.values(tiles).map((x) => ({ t: x, d: Math.hypot(x.base[0] - gp[0], (x.base[1] - gp[1]) * 1.3, x.base[2] - gp[2]) })); const mx = Math.max(1, ...win.wave.map((o) => o.d)); win.wave.forEach((o) => { o.d /= mx; o.e0 = o.t.mat.emissive.clone(); }); }
-      walkS = null; camAnim = null; const g = gl ? topOf(gl.id) : fig.position; burst(g.x, g.y + 0.1, g.z, 40, 1.6, 1.8, 1.4, false);
+      wkT = 1; walkS = null; camAnim = null; const g = gl ? topOf(gl.id) : fig.position; burst(g.x, g.y + 0.1, g.z, s.reduced ? 10 : 40, 1.6, 1.8, 1.4, false);
     };
     function updateWin(dt) {
-      const w = win; w.t += dt; if (s._wfreeze != null) w.t = s._wfreeze; const T_ = 3.1, k = clamp(w.t / T_, 0, 1); az = w.a0 + 90 * ease(k);
-      cam.zoom = 1 - 0.17 * Math.sin(Math.PI * Math.min(1, k * 1.08));                                  // pull back and let the whole island breathe
+      const w = win; w.t += dt; if (s._wfreeze != null) w.t = s._wfreeze; const RD = s.reduced, T_ = RD ? 1.1 : 3.1, k = clamp(w.t / T_, 0, 1); if (!RD) az = w.a0 + 90 * ease(k);
+      if (!RD) zb = 1 - 0.17 * Math.sin(Math.PI * Math.min(1, k * 1.08));                                  // pull back and let the whole island breathe
       if (w.wave) { const front = clamp((w.t - 0.15) / 1.6, 0, 1.25), glowC = new T.Color(pal.glow);
-        for (const o of w.wave) { const wv = clamp(1 - Math.abs(front - o.d) / 0.28, 0, 1), fade = 1 - k * 0.6; o.t.mat.emissive.copy(o.e0).lerp(glowC, wv * 0.55 * fade); o.t.g.position.y += wv * 0.14; } }
+        for (const o of w.wave) { const wv = clamp(1 - Math.abs(front - o.d) / 0.28, 0, 1), fade = 1 - k * 0.6; o.t.mat.emissive.copy(o.e0).lerp(glowC, wv * 0.55 * fade); if (!RD) o.t.g.position.y += wv * 0.14; } }
       { const U = bg.material.uniforms, boost = 1 + 1.6 * Math.sin(Math.PI * Math.min(1, k * 1.15)); U.hue.value.set(pal.glow).multiplyScalar(boost); }
-      const f = clamp((w.t - 0.25) / 1.4, 0, 1), g = w.goal && topOf(w.goal.id);
+      const f = clamp((w.t - (RD ? 0.1 : 0.25)) / (RD ? 0.7 : 1.4), 0, 1), g = w.goal && topOf(w.goal.id);
       if (w.goal) { w.goal.ring.scale.setScalar(1 + 1.2 * Math.sin(Math.PI * Math.min(1, w.t / 0.9))); w.goal.disc.material.opacity = 0.9 * (1 - k); w.goal.halo.material.opacity = 0.7 * (1 - k); w.goal.halo.scale.setScalar(1.5 + 2.5 * Math.min(1, w.t / 0.5)); }
-      if (g) { fig.position.set(g.x, g.y + ease(f) * 1.5, g.z); figScale(1 - 0.9 * f * f); yaw += dt * (2 + 10 * f); fig.rotation.y = yaw; shadow.visible = false; if (f > 0 && f < 1) { w.burst += dt; while (w.burst > 0.03) { w.burst -= 0.03; burst(fig.position.x, fig.position.y + 0.3, fig.position.z, 2, 0.5, 0.9, 1.0, false); } } }
+      if (g) { fig.position.set(g.x, g.y + ease(f) * 1.5, g.z); figScale(1 - 0.9 * f * f); if (!RD) yaw += dt * (2 + 10 * f); fig.rotation.y = yaw; shadow.visible = false; if (!RD && f > 0 && f < 1) { w.burst += dt; while (w.burst > 0.03) { w.burst -= 0.03; burst(fig.position.x, fig.position.y + 0.3, fig.position.z, 2, 0.5, 0.9, 1.0, false); } } }
       if (f >= 1) fig.visible = false;
       if (twTile && fig2.visible) { const q = topOf(twTile); fig2.position.set(q.x, q.y + ease(f) * 1.5, q.z); fig2Scale(1 - 0.9 * f * f); shadow2.visible = false; if (f >= 1) fig2.visible = false; }
-      if (w.t >= T_) { if (w.wave) for (const o of w.wave) o.t.mat.emissive.copy(o.e0); bg.material.uniforms.hue.value.set(pal.glow); cam.zoom = 1; win = null; logical = mod(logical + 1, 4); fig.visible = false; const d = w.onDone; d && d(); }
+      if (w.t >= T_) { if (w.wave) for (const o of w.wave) o.t.mat.emissive.copy(o.e0); bg.material.uniforms.hue.value.set(pal.glow); zb = 1; win = null; if (!RD) logical = mod(logical + 1, 4); fig.visible = false; const d = w.onDone; d && d(); }
     }
 
     // ---------- main frame ----------
@@ -424,9 +425,9 @@
       if (camAnim) { const k = clamp((nowp - camAnim.t0) / camAnim.dur, 0, 1); az = lerp(camAnim.from, camAnim.to, ease(k)); if (k >= 1) camAnim = null; }
       else if (drag && drag.tgt != null) az += (drag.tgt - az) * Math.min(1, dt * 14);
       for (const id in slv) { const v = slv[id]; if (v.to && !(drag && drag.sl === id)) { const k = clamp((nowp - v.t0) / v.dur, 0, 1), e = ease(k); v.cur = v.from.map((x, i) => lerp(x, v.to[i], e)); if (k >= 1) { v.cur = v.to; v.to = null; } } }
-      applyTiles(dt); if (win) updateWin(dt);
+      wk += (wkT - wk) * Math.min(1, dt * (s.reduced ? 12 : 2.6)); applyTiles(dt); if (win) updateWin(dt);
       updateWalk(dt); updateFigure(dt); updateTwin(dt); if (entry) entryApply(nowp); placeCam(); updateSeams(dt); updateFx(dt);
-      if (hl && tiles[hl]) { topOf(hl, hlRing.position); hlRing.position.y += 0.02; const p = Math.sin(time * 5); hlRing.scale.setScalar(1.05 + 0.1 * p); hlRing.material.opacity = 0.55 + 0.35 * p; }
+      if (hl && tiles[hl]) { topOf(hl, hlRing.position); hlRing.position.y += 0.02; const p = Math.sin(time * 5); hlRing.scale.setScalar(1.3 + 0.14 * p); hlRing.material.opacity = 0.75 + 0.25 * p; }
       if (hint) {
         const k = (nowp - hint.t0) / 1500; if (k >= 1) { hint = null; arrow.visible = false; } else { arrow.position.set(ctr.x, ctr.y - 0.2, ctr.z); arrow.rotation.z = hint.dir * (k - 0.5) * 0.9 + az * D2R * 0; arrow.material.opacity = Math.sin(Math.PI * k) * 0.55; }
       }
@@ -451,14 +452,14 @@
     }
     function down(e) {
       if (ptr) abortPtr(); // a lost pointerup (context menu, ctrl-click, leaving the window) must never lock the board
-      if (!enabled || entry || s.isBusy() || !level || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      if (!enabled || entry || walkS || win || !level || (e.pointerType === 'mouse' && e.button !== 0)) return;
       const id = s.pick(e.clientX, e.clientY), t = id && tiles[id];
-      ptr = { x: e.clientX, y: e.clientY, t0: performance.now(), id, mode: 'wait', az0: az, pid: e.pointerId, slider: t && t.sl && hooks.canSlide && hooks.canSlide(t.sl) ? t.sl : null, blocked: t && t.sl && hooks.canSlide && !hooks.canSlide(t.sl) ? t.sl : null };
+      const an = !!camAnim; ptr = { x: e.clientX, y: e.clientY, t0: performance.now(), id, mode: 'wait', az0: az, anim: an, pid: e.pointerId, slider: !an && t && t.sl && hooks.canSlide && hooks.canSlide(t.sl) ? t.sl : null, blocked: !an && t && t.sl && hooks.canSlide && !hooks.canSlide(t.sl) ? t.sl : null };
       try { canvas.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ }
     }
     function move(e) {
       if (!ptr || e.pointerId !== ptr.pid) return; const dx = e.clientX - ptr.x, dy = e.clientY - ptr.y;
-      if (ptr.mode === 'wait' && Math.hypot(dx, dy) > 8) { ptr.mode = ptr.slider ? 'slide' : ptr.blocked ? 'blocked' : 'turn'; if (ptr.mode !== 'blocked') drag = ptr.slider ? slideInit(ptr.slider) : { tgt: az }; ptr.az0 = az + (ptr.slider ? 0 : 0); ptr.sx = 0; }
+      if (ptr.mode === 'wait' && Math.hypot(dx, dy) > 8) { ptr.mode = ptr.slider ? 'slide' : ptr.blocked ? 'blocked' : 'turn'; if (ptr.mode !== 'blocked') drag = ptr.slider ? slideInit(ptr.slider) : { tgt: az }; ptr.az0 = ptr.anim && camAnim ? camAnim.to : az; if (ptr.anim) camAnim = null; /* a flick during a turn continues from the turn's target */ ptr.sx = 0; }
       if (ptr.mode === 'turn') { drag.tgt = ptr.az0 - (dx - ptr.sx) * 0.55; }
       else if (ptr.mode === 'slide') {
         const d = drag; let best = d.i, bc = 0.35;
@@ -470,15 +471,15 @@
     function abortPtr() { if (ptr) { try { up({ pointerId: ptr.pid, clientX: ptr.x, clientY: ptr.y }, true); } catch (x) { ptr = null; drag = null; } } }
     function up(e, cancel) {
       if (!ptr || e.pointerId !== ptr.pid) return; const p = ptr; ptr = null; try { canvas.releasePointerCapture(e.pointerId); } catch (x) { /* ignore */ }
-      if (p.mode === 'wait') { if (!cancel && performance.now() - p.t0 < 300 && p.id && hooks.onTapTile) hooks.onTapTile(p.id); }
+      if (p.mode === 'wait') { if (!cancel && performance.now() - p.t0 < 300 && p.id && !p.anim && hooks.onTapTile) hooks.onTapTile(p.id); }
       else if (p.mode === 'blocked') { if (!cancel && hooks.onSlideBlocked) hooks.onSlideBlocked(p.blocked); }
       else if (p.mode === 'turn') {
         const dxx = e.clientX - p.x, n0 = Math.round((p.az0 - 45) / 90); let n = Math.round((drag.tgt - 45) / 90);
         if (n === n0 && Math.abs(dxx) >= 40) n = n0 + (dxx > 0 ? -1 : 1); // flick: always advance one cam in the swipe direction
-        const c = mod(n, 4), to = 45 + 90 * n; drag = null; camAnim = { from: az, to, t0: performance.now(), dur: RMOT ? 1 : 280 };
+        const c = mod(n, 4), to = 45 + 90 * n; drag = null; camAnim = { from: az, to, t0: performance.now(), dur: s.reduced ? 1 : 280 };
         if (c !== logical) { logical = c; hooks.onCam && hooks.onCam(c); }
       } else if (p.mode === 'slide') {
-        const d = drag, idx = d.t > 0.5 ? d.j : d.i, v = slv[d.sl]; drag = null; v.from = v.cur.slice(); v.to = d.sd.positions[idx].slice(); v.t0 = performance.now(); v.dur = RMOT ? 1 : 220;
+        const d = drag, idx = d.t > 0.5 ? d.j : d.i, v = slv[d.sl]; drag = null; v.from = v.cur.slice(); v.to = d.sd.positions[idx].slice(); v.t0 = performance.now(); v.dur = s.reduced ? 1 : 220;
         if (idx !== d.i) { v.idx = idx; hooks.onSlide && hooks.onSlide(d.sl, idx); }
       }
     }

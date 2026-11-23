@@ -43,6 +43,8 @@
     <symbol id="i-levels" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="4.5" width="7" height="7" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.6"/></symbol>
     <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.7 9.7a2.4 2.4 0 1 1 3.5 2.1c-.8.4-1.2 1-1.2 1.8"/><path d="M12 16.7v.1"/></symbol>
     <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4.5 7h8M17 7h2.5M4.5 17H7M11.5 17h8"/><circle cx="14.7" cy="7" r="2.2"/><circle cx="9.2" cy="17" r="2.2"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V4.5M8 8l4-4 4 4"/><path d="M6.5 11.5H6A1.5 1.5 0 0 0 4.5 13v5.5A1.5 1.5 0 0 0 6 20h12a1.5 1.5 0 0 0 1.5-1.5V13A1.5 1.5 0 0 0 18 11.5h-.5"/></symbol>
+    <symbol id="i-photo" viewBox="0 0 24 24"><path d="M4.5 8.5A1.5 1.5 0 0 1 6 7h2l1.2-2h5.6L16 7h2a1.5 1.5 0 0 1 1.5 1.5V17a1.5 1.5 0 0 1-1.5 1.5H6A1.5 1.5 0 0 1 4.5 17z"/><circle cx="12" cy="12.5" r="3.2"/></symbol>
     <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5.5" y="10.5" width="13" height="9" rx="2.4"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></symbol>
     <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.2l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.6 6.8 19.4l1-5.9L3.5 9.4l5.9-.8z" stroke-linejoin="round"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M5.5 12.5l4.2 4.2 8.8-9.2"/></symbol>
@@ -110,7 +112,7 @@
         <button class="icon-btn" data-go="menu" data-i18n-aria="common.back"><svg class="ic"><use href="#i-back"/></svg></button>
         <div class="page-title"><h2 data-i18n="levels.title"></h2><p id="lv-sub"></p></div>
       </header>
-      <div class="scroll"><div class="lv-grid" id="lv-grid"></div></div>
+      <div class="scroll"><div class="cmap" id="lv-grid"></div></div>
     </div>
   </section>
 
@@ -156,7 +158,12 @@
         <p class="win-note" id="win-note" hidden data-i18n="win.last"></p>
         <div class="win-actions">
           <button class="btn btn-primary btn-lg" id="win-next"><span data-i18n="win.next"></span><svg class="ic"><use href="#i-next"/></svg></button>
-          <div class="row4"><button class="btn btn-glass" id="win-levels" data-i18n="win.levels"></button><button class="btn btn-glass" id="win-replay" data-i18n="win.replay"></button><button class="btn btn-glass" id="win-share" data-i18n="share.btn"></button><button class="btn btn-glass" id="win-photo" data-i18n="photo.btn"></button></div>
+          <div class="row4">
+            <button class="ib" id="win-replay" data-i18n-aria="win.replay" data-i18n-title="win.replay"><svg class="ic"><use href="#i-restart"/></svg></button>
+            <button class="ib" id="win-share" data-i18n-aria="share.btn" data-i18n-title="share.btn"><svg class="ic"><use href="#i-share"/></svg></button>
+            <button class="ib" id="win-photo" data-i18n-aria="photo.btn" data-i18n-title="photo.btn"><svg class="ic"><use href="#i-photo"/></svg></button>
+            <button class="lnk" id="win-levels" data-i18n="win.levels"></button>
+          </div>
         </div>
       </div>
     </div>
@@ -182,7 +189,7 @@
         </div>
         <button class="btn btn-glass btn-lg" id="b-pro" hidden><svg class="ic"><use href="#i-star"/></svg><span id="t-pro"></span></button>
         <button class="btn btn-danger" id="b-reset"><svg class="ic"><use href="#i-trash"/></svg><span data-i18n="set.reset"></span></button>
-        <p class="set-foot" id="set-foot"></p>
+        <div class="set-end"><b class="set-sign">RBW</b><p class="set-foot" id="set-foot"></p></div>
       </div>
     </div>
     <div class="modal" id="modal" hidden>
@@ -223,6 +230,7 @@
 <script src="src/i18n.js"></script>
 <script src="src/audio.js"></script>
 <script src="src/scene-fx.js"></script>
+<script src="src/scene-pal.js"></script>
 <script src="src/scene.js"></script>
 <script src="src/ui.js"></script>
 <script src="src/game.js"></script>

@@ -93,3 +93,14 @@
 .ghost.tap::after { content: ""; position: absolute; left: 12px; top: 12px; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; border: 2px solid var(--scarlet-hi); opacity: 0; animation: gring 1.5s ease both; }
 @keyframes gring { 0%, 44% { opacity: 0; transform: scale(.4); } 52% { opacity: .9; } 100% { opacity: 0; transform: scale(2.6); } }
 @media (prefers-reduced-motion: reduce) { .ghost.drag, .ghost.tap { animation-duration: .01s; opacity: 1; } .ghost.tap::after { display: none; } }
+
+/* accessibility: reduced motion for level card / win card / hints, and a visible keyboard focus ring on every control (layout unchanged) */
+@media (prefers-reduced-motion: reduce) {
+  .transition, .transition__inner, .transition__num, .transition__rule, .transition__chapter { transition-duration: .01s !important; animation: none !important; }
+  .win-card, .coach, .coach-body, .coach-art .ic, .coach-art::after, .tool.glow, .chip.bump b, .stars .ic, .stars .ic.on { animation: none !important; }
+  .grain, .grain::before, .grain::after { animation: none !important; }
+  .ghost.drag, .ghost.tap { animation: none !important; opacity: .9; }
+}
+button:focus-visible, [role="button"]:focus-visible, [role="switch"]:focus-visible, a:focus-visible, .btn:focus-visible, .tool:focus-visible, .lv:focus-visible {
+  outline: 2px solid var(--scarlet-hi, #E0343A); outline-offset: 3px;
+}

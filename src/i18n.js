@@ -4,7 +4,7 @@
   const V = (root.V = root.V || {});
   const D = {
     ru: {
-      'app.tagline': 'Мир, где расстояние — вопрос ракурса',
+      'app.tagline': 'Где расстояние — вопрос ракурса',
       'menu.play': 'Играть', 'menu.continue': 'Продолжить', 'menu.levels': 'Уровни', 'menu.how': 'Как играть', 'menu.settings': 'Настройки',
       'menu.credit': 'RBW', 'splash.presents': 'представляет',
       'pw.title': 'Полная версия', 'pw.p': 'Все остальные главы и будущие уровни. Бесплатные главы остаются бесплатными навсегда. Разовая покупка, без подписки.', 'pw.buy': 'Купить полную версию', 'pw.restore': 'Восстановить покупку', 'pw.later': 'Позже', 'pw.bad': 'Покупка не завершена', 'pw.on': 'Полная версия открыта. Спасибо!', 'pw.open': 'Полная версия', 'pw.active': 'Полная версия · открыта', 'levels.pro': 'Полная версия',
@@ -19,10 +19,11 @@
       'levels.title': 'Уровни', 'levels.sub': 'Пройдено {n} из {m}', 'levels.locked': 'Закрыт', 'levels.best': 'Лучший: {n}', 'levels.new': 'Новый',
       'win.title': 'Путь найден', 'win.moves': 'Ходов', 'win.best': 'Лучший', 'win.hints': 'Подсказок',
       'win.next': 'Дальше', 'win.levels': 'Уровни', 'win.replay': 'Ещё раз', 'win.last': 'Ты прошёл все уровни. Новые главы скоро', 'ch.n': 'Глава {n}',
+      'chl.1': 'Два края, что не касались, пока ты не посмотрел отсюда.', 'chl.2': 'Здесь что-то ждёт, чтобы его повернули.', 'chl.3': 'Не всё выдерживает второй шаг.', 'chl.4': 'Они идут там, где ты уже был.', 'chl.5': 'У каждого веса находится ответ.', 'chl.6': 'Дверь — это лишь точка зрения.', 'chl.7': 'Дорога назад та же, только повёрнутая.',
       'toast.blocked': 'Нет пути с этой стороны', 'toast.fixed': 'Ты стоишь на этом блоке — его не сдвинуть',
       'toast.nohint': 'Для этой позиции подсказки нет. Начни заново', 'toast.gate': 'Ворота открылись',
       'toast.stuck': 'Сначала дождись конца шага',
-      'hint.rotl': 'Поверни мир влево', 'hint.rotr': 'Поверни мир вправо', 'hint.go': 'Отсюда можно дойти до подсвеченной плитки.', 'hint.rt.l': 'Поверни мир влево{x}: потом дойдёшь до подсвеченной плитки.', 'hint.rt.r': 'Поверни мир вправо{x}: потом дойдёшь до подсвеченной плитки.', 'hint.twice': ' дважды', 'hint.lever': 'Сначала нужен рычаг: он подсвечен.', 'hint.warp': 'Шагни в портал: он перенесёт тебя на другую сторону.', 'hint.spent': 'Подсказка на этом уровне уже использована. Дальше сам.', 'hint.step': 'Иди сюда', 'hint.slide': 'Сдвинь блок: положение {n} из {m}',
+      'hint.rotl': 'Поверни мир влево', 'hint.rotr': 'Поверни мир вправо', 'hint.go': 'Отсюда можно дойти до плитки в кольце.', 'hint.rt.l': 'Поверни мир влево{x}: потом дойдёшь до плитки в кольце.', 'hint.rt.r': 'Поверни мир вправо{x}: потом дойдёшь до плитки в кольце.', 'hint.twice': ' дважды', 'hint.lever': 'Сначала нужен рычаг: он в кольце.', 'hint.warp': 'Шагни в портал: он перенесёт тебя на другую сторону.', 'hint.spent': 'Подсказка на этом уровне уже использована. Дальше сам.', 'hint.step': 'Иди сюда', 'hint.slide': 'Сдвинь блок: положение {n} из {m}', 'hint.slide.d': 'Сдвинь блок {d}: положение {n} из {m}', 'hint.t.l': 'Сначала поверни мир влево{x}.', 'hint.t.r': 'Сначала поверни мир вправо{x}.', 'hint.cost': 'Подсказка забирает вторую звезду. Нажми ещё раз, если нужна', 'dir.u': 'вверх', 'dir.d': 'вниз', 'dir.ur': 'вправо-вверх', 'dir.ul': 'влево-вверх', 'dir.dr': 'вправо-вниз', 'dir.dl': 'влево-вниз', 'dir.r': 'вправо', 'dir.l': 'влево', 'gl.none': 'WebGL недоступен: мир не показать. Включи аппаратное ускорение или открой игру в другом браузере.',
       'coach.rot': 'Мир можно вращать: перетащи', 'coach.rotkey': 'Или нажми ← → на клавиатуре',
       'coach.seam': 'Смотри: острова сошлись на экране — теперь они соединены. Коснись плитки, чтобы идти',
       'coach.seamno': 'Здесь острова ещё не сошлись. Поверни мир дальше',
@@ -40,7 +41,7 @@
       'how.stars': 'Звёзды: пройти уровень, обойтись без подсказок, уложиться в эталон ходов. Повороты мира не считаются.', 'how.go': 'К игре',
     },
     en: {
-      'app.tagline': 'A world where distance is a matter of angle',
+      'app.tagline': 'Where distance is a matter of angle',
       'menu.play': 'Play', 'menu.continue': 'Continue', 'menu.levels': 'Levels', 'menu.how': 'How to play', 'menu.settings': 'Settings',
       'menu.credit': 'RBW', 'splash.presents': 'presents',
       'pw.title': 'Full version', 'pw.p': 'Every remaining chapter and all future levels. Free chapters stay free forever. One purchase, no subscription.', 'pw.buy': 'Buy the full version', 'pw.restore': 'Restore purchase', 'pw.later': 'Not now', 'pw.bad': 'Purchase was not completed', 'pw.on': 'Full version unlocked. Thank you!', 'pw.open': 'Full version', 'pw.active': 'Full version · unlocked', 'levels.pro': 'Full version',
@@ -55,10 +56,11 @@
       'levels.title': 'Levels', 'levels.sub': '{n} of {m} solved', 'levels.locked': 'Locked', 'levels.best': 'Best: {n}', 'levels.new': 'New',
       'win.title': 'Path found', 'win.moves': 'Moves', 'win.best': 'Best', 'win.hints': 'Hints',
       'win.next': 'Next', 'win.levels': 'Levels', 'win.replay': 'Replay', 'win.last': 'You finished every level. New chapters are coming', 'ch.n': 'Chapter {n}',
+      'chl.1': 'Two edges that never touched, until you looked from here.', 'chl.2': 'Something here is waiting to be turned.', 'chl.3': 'Not everything holds a second time.', 'chl.4': 'They walk where you have already been.', 'chl.5': 'Every weight finds its answer.', 'chl.6': 'A door is only a point of view.', 'chl.7': 'The way back is the same way, turned.',
       'toast.blocked': 'No path from this side', 'toast.fixed': 'You are standing on this block, so it cannot move',
       'toast.nohint': 'No hint for this position. Try restarting', 'toast.gate': 'The gate opened',
       'toast.stuck': 'Wait for the step to finish',
-      'hint.rotl': 'Turn the world left', 'hint.rotr': 'Turn the world right', 'hint.go': 'From here you can reach the glowing tile.', 'hint.rt.l': 'Turn the world left{x}: then you can reach the glowing tile.', 'hint.rt.r': 'Turn the world right{x}: then you can reach the glowing tile.', 'hint.twice': ' twice', 'hint.lever': 'You need the lever first: it is lit.', 'hint.warp': 'Step into the portal: it carries you to the other side.', 'hint.spent': 'The hint on this level is already used. You are on your own.', 'hint.step': 'Go here', 'hint.slide': 'Slide the block: position {n} of {m}',
+      'hint.rotl': 'Turn the world left', 'hint.rotr': 'Turn the world right', 'hint.go': 'From here you can reach the ringed tile.', 'hint.rt.l': 'Turn the world left{x}: then you can reach the ringed tile.', 'hint.rt.r': 'Turn the world right{x}: then you can reach the ringed tile.', 'hint.twice': ' twice', 'hint.lever': 'You need the lever first: it is ringed.', 'hint.warp': 'Step into the portal: it carries you to the other side.', 'hint.spent': 'The hint on this level is already used. You are on your own.', 'hint.step': 'Go here', 'hint.slide': 'Slide the block: position {n} of {m}', 'hint.slide.d': 'Slide the block {d}: position {n} of {m}', 'hint.t.l': 'First turn the world left{x}.', 'hint.t.r': 'First turn the world right{x}.', 'hint.cost': 'A hint costs the second star. Tap again to use it', 'dir.u': 'up', 'dir.d': 'down', 'dir.ur': 'up-right', 'dir.ul': 'up-left', 'dir.dr': 'down-right', 'dir.dl': 'down-left', 'dir.r': 'right', 'dir.l': 'left', 'gl.none': 'WebGL is unavailable, so the world cannot be shown. Enable hardware acceleration or try another browser.',
       'coach.rot': 'You can turn the world: drag', 'coach.rotkey': 'Or press the arrow keys',
       'coach.seam': 'Look: the islands meet on screen, so now they are connected. Tap a tile to walk',
       'coach.seamno': 'The islands do not meet from here yet. Keep turning',

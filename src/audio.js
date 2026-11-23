@@ -13,7 +13,7 @@
   let soundOn = true, musicOn = true, hapticsOn = true, volume = 0.8;
   let voices = 0, lastStep = 0, lastStepIdx = -1;
   // music
-  let musicGain = null, musicActive = false, noteTimer = 0, padTimer = 0, droneTimer = 0, stopTimer = 0, chordIdx = 0;
+  let musicGain = null, musicActive = false, stopTimer = 0, chordIdx = 0;
   const pads = new Set(); // every long-lived music node group (pads, drone, notes): {stop()}
   // proximity
   let prox = null, proxP = 0;
@@ -174,13 +174,37 @@
   };
 
   // ---------- music ----------
-  const MUSIC_LEVEL = 0.3;
-  const CHORDS = [[146.83, 220, 293.66], [123.47, 185, 246.94], [164.81, 220, 329.63], [146.83, 185, 246.94]];
+  // Generative ambience: one lookahead scheduler (setInterval) lays out slow pad chords, a low drone and sparse plucks.
+  // Each chapter is a mood: root (Hz), scale and chords as semitone offsets, filter cutoff, pluck spacing. Index -1 = menu (calmer, sparser).
+  const MUSIC_LEVEL = 0.3, LOOK = 1.6, TICK = 400;
+  const MOODS = [
+    { root: 146.83, scale: [0, 2, 4, 7, 9], chords: [[0, 7, 16], [-5, 2, 11], [2, 9, 16], [0, 4, 11]], cut: 520, gap: [2400, 6500] },        // 1 calm, D major pentatonic
+    { root: 110, scale: [0, 3, 5, 7, 10], chords: [[0, 7, 15], [-4, 3, 10], [-2, 5, 12], [0, 7, 12]], cut: 440, gap: [3000, 7500] },          // 2 a little mysterious, A minor pentatonic
+    { root: 130.81, scale: [0, 2, 4, 6, 7, 11], chords: [[0, 7, 16], [2, 9, 18], [0, 6, 11], [-5, 4, 11]], cut: 620, gap: [2600, 6500] },    // 3 open, lydian
+    { root: 98, scale: [0, 2, 3, 7, 8], chords: [[0, 7, 15], [-4, 3, 10], [-7, 0, 8], [0, 8, 15]], cut: 400, gap: [3200, 8000] },             // 4 darker, G minor with a flat sixth
+    { root: 123.47, scale: [0, 2, 4, 7, 9, 11], chords: [[0, 7, 14], [2, 9, 16], [-3, 4, 11], [0, 4, 11]], cut: 700, gap: [2200, 6000] },    // 5 airy, B
+    { root: 116.54, scale: [0, 1, 5, 7, 10], chords: [[0, 7, 15], [1, 8, 15], [-5, 0, 7], [0, 5, 12]], cut: 380, gap: [3400, 8500] },        // 6 uneasy, phrygian colour
+    { root: 138.59, scale: [0, 2, 4, 7, 9], chords: [[0, 7, 16], [5, 12, 16], [-3, 4, 9], [0, 7, 12]], cut: 600, gap: [2400, 6200] },        // 7 warm, resolving
+  ];
+  const MENU = { root: 146.83, scale: [0, 2, 7, 9], chords: [[0, 7, 16], [2, 9, 16]], cut: 400, gap: [4500, 10000], lvl: 0.7 };
+  let mood = MENU, chapterIdx = -1, bus = null, sched = 0, nextPad = 0, nextDrone = 0, nextNote = 0, walkIdx = 0, duckT = 0;
+  const hz = (root, semi) => root * Math.pow(2, semi / 12);
 
-  // slow soft pad/drone voice: two sines (one detuned) through a lowpass, own envelope, own reverb send on the music bus
-  function padVoice(f, dur, vol, cutoff, attackFrac) {
-    const t = now();
-    const g = ctx.createGain(), lp = ctx.createBiquadFilter();
+  // a bus per mood so a chapter change is a crossfade: the old bus fades out and its nodes are stopped, the new one fades in
+  function newBus(lvl) {
+    const g = ctx.createGain(); g.gain.value = 0.0001; g.connect(musicGain);
+    const t = now(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(lvl || 1, t + 2.4);
+    return { g, mood };
+  }
+  function retireBus(b) {
+    if (!b) return;
+    const t = now(); b.g.gain.cancelScheduledValues(t); b.g.gain.setValueAtTime(b.g.gain.value, t); b.g.gain.linearRampToValueAtTime(0.0001, t + 1.8);
+    setTimeout(() => { pads.forEach((p) => { if (p.bus === b) p.stop(); }); try { b.g.disconnect(); } catch (e) {} }, 2100);
+  }
+
+  // slow soft pad/drone voice: two sines (one detuned) through a lowpass, own envelope, reverb send on the music bus
+  function padVoice(f, dur, vol, cutoff, attackFrac, t) {
+    const b = bus, g = ctx.createGain(), lp = ctx.createBiquadFilter();
     lp.type = 'lowpass'; lp.frequency.value = cutoff; lp.Q.value = 0.3;
     g.gain.setValueAtTime(0.0001, t);
     g.gain.linearRampToValueAtTime(vol, t + dur * attackFrac);
@@ -189,47 +213,70 @@
       const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f; o.detune.value = cents;
       o.connect(lp); o.start(t); o.stop(t + dur + 0.1); return o;
     });
-    lp.connect(g); g.connect(musicGain);
+    lp.connect(g); g.connect(b.g);
     const s = ctx.createGain(); s.gain.value = 0.5; g.connect(s); s.connect(musicRevIn);
-    const rec = { stop() { oscs.forEach((o) => { try { o.stop(); } catch (e) {} }); } };
+    const rec = { bus: b, stop() { oscs.forEach((o) => { try { o.stop(); } catch (e) {} }); } };
     pads.add(rec);
     oscs[0].onended = () => { [lp, g, s].forEach((n) => { try { n.disconnect(); } catch (e) {} }); oscs.forEach((o) => { try { o.disconnect(); } catch (e) {} }); pads.delete(rec); };
   }
 
-  function padTick() {
-    if (!musicActive) return;
-    CHORDS[chordIdx++ % CHORDS.length].forEach((f) => padVoice(f, 24, 0.032, 520, 0.35));
-    padTimer = setTimeout(padTick, 13000);
-  }
-  function droneTick() { // slow low fifth, D2 + A2
-    if (!musicActive) return;
-    padVoice(73.42, 36, 0.05, 260, 0.4); padVoice(110, 36, 0.03, 260, 0.4);
-    droneTimer = setTimeout(droneTick, 26000);
-  }
-  function noteTick() {
-    if (!musicActive) return;
-    if (running()) {
-      const f = PENTA[Math.floor(rnd(0, PENTA.length))] * (Math.random() < 0.3 ? 2 : 1);
-      voice(f, now() + 0.02, { dur: 3.2, vol: 0.05, ratio: 3, pv: 0.25, send: 1.2, attack: 0.01, dest: musicGain, music: true });
+  function musicTick() {
+    if (!musicActive || !running() || !bus) return;
+    const horizon = now() + LOOK, m = mood;
+    while (nextPad < horizon) {
+      const t = Math.max(nextPad, now() + 0.02);
+      m.chords[chordIdx++ % m.chords.length].forEach((s) => padVoice(hz(m.root, s), 24, 0.032, m.cut, 0.35, t));
+      nextPad += 13;
     }
-    noteTimer = setTimeout(noteTick, rnd(2200, 6500));
+    while (nextDrone < horizon) {
+      const t = Math.max(nextDrone, now() + 0.02);
+      padVoice(m.root / 2, 36, 0.05, 260, 0.4, t); padVoice(m.root * 0.75, 36, 0.03, 260, 0.4, t); // root and fifth above it
+      nextDrone += 26;
+    }
+    while (nextNote < horizon) {
+      // small random walk over the scale, so notes read as a phrase rather than noise
+      walkIdx = Math.max(0, Math.min(m.scale.length * 2 - 1, walkIdx + Math.round(rnd(-2, 2.4))));
+      const oct = Math.floor(walkIdx / m.scale.length), semi = m.scale[walkIdx % m.scale.length] + 12 * (oct + 2);
+      const t = Math.max(nextNote, now() + 0.02);
+      voice(hz(m.root, semi), t, { dur: 3.2, vol: 0.05, ratio: 3, pv: 0.25, send: 1.2, attack: 0.01, dest: bus.g, music: true });
+      nextNote += rnd(m.gap[0], m.gap[1]) / 1000;
+    }
   }
 
   function musicStart() {
     if (musicActive || !running() || !musicOn || hidden) return;
     musicActive = true;
-    clearTimeout(stopTimer);
+    clearTimeout(stopTimer); clearTimeout(duckT);
     cut(musicGain, MUSIC_LEVEL, 0.6);
-    padTick(); droneTick();
-    noteTimer = setTimeout(noteTick, 900);
+    bus = newBus(mood.lvl);
+    const t = now();
+    nextPad = t + 0.1; nextDrone = t + 0.1; nextNote = t + 1.5; walkIdx = 0;
+    musicTick(); sched = setInterval(musicTick, TICK);
   }
   // near-instant: 60ms ramp to silence (bus includes the music reverb tail), then kill every music node
   function musicStop() {
     if (!ctx) return;
     musicActive = false;
-    clearTimeout(noteTimer); clearTimeout(padTimer); clearTimeout(droneTimer); clearTimeout(stopTimer);
+    clearInterval(sched); clearTimeout(stopTimer); clearTimeout(duckT);
     cut(musicGain, 0, 0.06);
-    stopTimer = setTimeout(() => { pads.forEach((p) => p.stop()); }, 90);
+    const old = bus, oldPads = Array.from(pads); bus = null;   // own timer per stop (a quick restart must not cancel it), and only the pads that existed now
+    setTimeout(() => { oldPads.forEach((p) => p.stop()); if (old) { try { old.g.disconnect(); } catch (e) {} } }, 90);
+  }
+  // i: chapter index 0..6, anything else (-1, null) = menu mood. Safe to call before audio is unlocked: the mood is remembered.
+  function setChapter(i) {
+    i = (i === null || i === undefined || !(i >= 0)) ? -1 : Math.min(MOODS.length - 1, i | 0);
+    if (i === chapterIdx) return;
+    chapterIdx = i; mood = i < 0 ? MENU : MOODS[i];
+    if (!ctx || !musicActive || !bus) return;
+    retireBus(bus); bus = newBus(mood.lvl);
+    const t = now(); nextPad = t + 0.4; nextDrone = t + 0.4; nextNote = t + 2.5; chordIdx = 0; walkIdx = 0;
+  }
+  // brief duck under a win jingle, then return to the normal level
+  function duck(sec) {
+    if (!ctx || !musicActive) return;
+    cut(musicGain, MUSIC_LEVEL * 0.3, 0.25);
+    clearTimeout(duckT);
+    duckT = setTimeout(() => { if (musicActive) cut(musicGain, MUSIC_LEVEL, 2); }, (sec || 4) * 1000);
   }
 
   // ---------- proximity hum ----------
@@ -278,6 +325,9 @@
         if (typeof document !== 'undefined') {
           hidden = !!document.hidden;
           document.addEventListener('visibilitychange', safe(onVisibility));
+          // iOS can leave the context 'interrupted' (call, Siri, lock): bring it back on the next gesture
+          const recover = safe(function () { if (ctx && ctx.state !== 'running' && !hidden) ctx.resume().then(() => { if (!prox) proxInit(); musicStart(); proxApply(); }).catch(() => {}); });
+          ['pointerdown', 'keydown', 'touchend'].forEach((ev) => document.addEventListener(ev, recover, true));
         }
         // iOS: a started silent buffer inside the gesture fully unlocks output
         const s = ctx.createBufferSource(); s.buffer = ctx.createBuffer(1, 1, 22050);
@@ -292,6 +342,7 @@
       if (ctx.state !== 'running') { ctx.resume().catch(() => {}); return; }
       const fn = SOUNDS[name];
       if (fn) fn(now() + 0.005);
+      if (name === 'solve') duck(4.5);
     }),
     setSound: safe(function (on) {
       soundOn = !!on;
@@ -305,6 +356,7 @@
       if (!ctx) return;
       if (musicOn) musicStart(); else musicStop();
     }),
+    music: { start: safe(function () { musicStart(); }), stop: safe(function () { musicStop(); }), setChapter: safe(setChapter), duck: safe(duck), chapter: () => chapterIdx },
     setProximity: safe(function (p) {
       p = p > 0 ? (p < 1 ? p : 1) : 0;
       if (p === proxP) return;

@@ -63,17 +63,19 @@
   // ---------- scene ----------
   let scene = null;
   const noop = () => {};
-  const Null = { setHooks: noop, setLevel: noop, setState: noop, setCam: noop, getCam: () => 0, walk: (p, s, d) => d && d(), setSeams: noop, highlightTile: noop, pulseHint: noop, playWin: (d) => d && d(), pick: noop, isBusy: () => false, setInputEnabled: noop, frame: noop, resize: noop };
-  try { scene = root.W.Scene.create($('game')); } catch (e) { console.error('Scene unavailable', e); scene = Null; }
+  const Null = { setHooks: noop, setLevel: noop, setState: noop, setCam: noop, getCam: () => 0, walk: (p, s, d) => d && d(), setSeams: noop, highlightTile: noop, pulseHint: noop, playWin: (d) => d && d(), pick: noop, isBusy: () => false, busy: () => false, setInputEnabled: noop, frame: noop, resize: noop, setLift: noop, setScale: noop, teleport: noop, screenOf: () => null, dispose: noop };
+  let noGL = false;
+  try { scene = root.W.Scene.create($('game')); } catch (e) { console.error('Scene unavailable', e); scene = Null; noGL = true; }
 
   // ---------- game state ----------
   let li = 0, level = LV[0], st = W.initial(level), undo = [], moves = 0, turns = 0, hints = 0, walking = false, won = false, hlTimer = 0, seamN = 0, lastStars = 3, barTimer = 0, t0 = 0, daily = false, dailyDay = 0, trail = '';
-  let lastHint = '', coachStep = null; // 'rot' | 'seam' | 'goal' | 'lever' | 'slider' | null
+  let lastHint = '', coachStep = null, hintArm = 0, walkPre = null, walkId = 0; const tipSeen = {}; // 'rot' | 'seam' | 'goal' | 'lever' | 'slider' | null
   const playing = () => UI.cur() === 'play';
   const seams = () => { const p = W.visualPairs(level, st); scene.setSeams(p); return p; };
   const clearHl = () => { clearTimeout(hlTimer); scene.highlightTile(null); };
   const hl = (id, ms) => { scene.highlightTile(id); clearTimeout(hlTimer); hlTimer = setTimeout(() => scene.highlightTile(null), ms || 3500); };
-  const snap = () => undo.push({ st, moves, turns, trail });
+  const snap = () => { undo.push({ st, moves, turns, trail }); if (undo.length > 50) undo.shift(); };
+  const abortWalk = () => { if (!walking) return; walkId++; walking = false; if (walkPre) st = walkPre.st; walkPre = null; scene.setInputEnabled(true); };
   const say = (k, p, ms) => UI.toast(t(k, p), ms);
   // Bottom bar with actions (dead end, "level restarted — bring back"). buttons: [{ k: i18n key, fn, primary }]
   function showBar(textKey, buttons, ms) {
@@ -83,7 +85,7 @@
   }
   function hideBar() { clearTimeout(barTimer); $('dead').hidden = true; }
   // Remember where the player is, so leaving the level (or closing the tab) never loses the progress.
-  function saveCur() { if (daily) return; if (won) delete save.curs[level.id]; else if (moves + turns + undo.length > 0) { save.curs[level.id] = { id: level.id, st, undo, moves, turns, hints, trail }; save.last = level.id; } else delete save.curs[level.id]; persist(); }   // one saved position per level
+  function saveCur() { if (daily) return; if (won) delete save.curs[level.id]; else if (moves + turns + undo.length > 0) { save.curs[level.id] = { id: level.id, st: walking && walkPre ? walkPre.st : st, undo, moves, turns, hints, trail }; save.last = level.id; } else delete save.curs[level.id]; persist(); }   // one saved position per level
   // After a walk ends: if the level can no longer be won (a crumbled tile, a lever used too early), say so instead of leaving the player lost.
   function checkDead() {
     if (won || walking || !playing()) return;
@@ -146,7 +148,8 @@
     const k = TUT[level.id]; coachStep = null;
     if (k && !save.tut[k] && !daily) coachStep = level.id === 'W01' ? 'rot' : level.id === 'W03' ? 'lever' : level.id === 'W05' ? 'crumble' : level.id === 'W22' ? 'phase' : level.id === 'W28' ? 'toggle' : level.id === 'W49' ? 'warp' : level.id === 'W58' ? 'twin' : 'slider';
     coachShow();
-    if (!coachStep && !won) setTimeout(() => { if (playing() && !coachStep && !moves) UI.toast(pick(level.hint), 4600); }, 600);
+    // a given tip text shows once per chapter per session
+    if (!coachStep && !won) setTimeout(() => { if (playing() && !coachStep && !moves) { const tx = pick(level.hint), tk = (level.ch || 1) + '|' + tx; if (tx && !tipSeen[tk]) { tipSeen[tk] = 1; UI.toast(tx, 4600); } } }, 600);
   }
   function coachRotated(n) {
     if (demoing) return;
@@ -159,7 +162,8 @@
   function setCamAnim(c) { if (scene.getCam() !== c) scene.setCam(c, true); }
   function applyCam(c, viaButton) {
     if (!playing() || walking || won || c === st.cam) return;
-    snap(); st = Object.assign({}, st, { cam: c }); turns++; trail += 'T'; clearHl(); hideBar();
+    st = Object.assign({}, st, { cam: c }); turns++;   // turns are free and are not undo steps
+    trail += 'T'; clearHl(); hideBar();
     if (viaButton) scene.setCam(c, true);
     if (level.tiles.some((x) => x.kind === 'phase')) scene.setState(st, true);
     const n = seams().length; if (n > seamN) A.play('near'); else A.play('flip'); seamN = n; A.haptic('tap');
@@ -186,10 +190,11 @@
     clearHl(); A.play('click');
     const path = plan(id);
     if (!path) { hl(id, 600); A.play('coach'); A.haptic('tap'); say('toast.blocked'); return; }
-    snap(); moves++; trail += 'W'; walking = true; hideBar(); scene.setInputEnabled(false);
+    walkPre = { st, moves, turns, trail }; const wid = ++walkId; walking = true; hideBar(); scene.setInputEnabled(false);   // the move is counted when the walk completes
     if (coachStep === 'seam') { coachStep = 'goal'; coachShow(); }
     hud();
     scene.walk(path, (tid) => {
+      if (wid !== walkId) return;
       const prev = st; st = W.step(level, st, tid); A.play('step'); A.haptic('step');
       if (st.tile !== tid) { scene.teleport(st.tile); seams(); A.play('warp'); A.haptic('tap'); if (coachStep === 'warp') coachDone(); }
       if (st.tw !== prev.tw) { scene.setState(st, true); seams(); A.play('twin'); }
@@ -199,6 +204,8 @@
         if (coachStep === 'lever' || coachStep === 'toggle') coachDone();
       }
     }, () => {
+      if (wid !== walkId) return;
+      undo.push(walkPre); if (undo.length > 50) undo.shift(); walkPre = null; moves++; trail += 'W';
       walking = false; scene.setInputEnabled(true); seamN = seams().length; if (coachStep === 'twin') coachDone();
       if (W.solved(level, st)) win(); else { hud(); saveCur(); checkDead(); }
     });
@@ -214,7 +221,7 @@
     const u = undo.pop(); st = u.st; moves = u.moves; turns = u.turns || 0; trail = u.trail || ''; clearHl(); hideBar(); scene.setState(st, true); setCamAnim(st.cam); seamN = seams().length; A.play('click'); track('undo', { level: level.id }); hud(); saveCur(); checkDead();
   }
   function restart(keepHints) {
-    st = W.initial(level); undo = []; moves = 0; turns = 0; trail = ''; if (!keepHints) hints = 0; won = false; walking = false; clearHl(); hideBar();
+    st = W.initial(level); undo = []; moves = 0; turns = 0; trail = ''; if (!keepHints) hints = 0; won = false; walkId++; walking = false; walkPre = null; clearHl(); hideBar();
     scene.setState(st, true); setCamAnim(st.cam); seamN = seams().length; scene.setInputEnabled(true); $('win').hidden = true; hud(); saveCur();
   }
   // One hint per level, and it carries an idea rather than the next click: the turn to make (if any) and the tile to walk to,
@@ -229,32 +236,41 @@
     let j = i; while (acts[j] && acts[j].t === 'step') run.push(acts[j++].to);
     const kindOf = (id) => (level.tiles.find((x) => x.id === id) || {}).kind;
     const key = run.find((id) => ['switch', 'toggle', 'warp'].includes(kindOf(id)));
-    let tile = null, msg;
+    let tile = null, msg, sdir = '';
     if (run.length) {
       const k = key ? kindOf(key) : '';
       tile = key || run[run.length - 1];
       msg = k === 'switch' || k === 'toggle' ? 'hint.lever' : k === 'warp' ? 'hint.warp' : n ? (n === 3 ? 'hint.rt.r' : dirL ? 'hint.rt.l' : 'hint.rt.r') : 'hint.go';
-    } else if (acts[i] && acts[i].t === 'slide') { tile = (level.tiles.find((x) => x.slider === acts[i].id) || {}).id; msg = 'hint.slide'; }
+    } else if (acts[i] && acts[i].t === 'slide') {
+      const tl = level.tiles.find((x) => x.slider === acts[i].id); tile = tl && tl.id; msg = 'hint.slide';
+      const sd = level.sliders.find((q) => q.id === acts[i].id), a = sd.positions[st.sl[sd.id]], b = sd.positions[acts[i].pos], bs = W.bases[((st.cam + rot) % 4 + 4) % 4];
+      if (a && b) { const d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], dx = d[0] * bs.u[0] + d[1] * bs.u[1] + d[2] * bs.u[2], dy = -(d[0] * bs.v[0] + d[1] * bs.v[1] + d[2] * bs.v[2]); sdir = (dy < -0.01 ? 'u' : dy > 0.01 ? 'd' : '') + (dx > 0.01 ? 'r' : dx < -0.01 ? 'l' : ''); }
+      if (sdir) msg = 'hint.slide.d';
+    }
     else { say('toast.nohint'); A.play('coach'); return; }
+    if (!hints && Date.now() > hintArm) { hintArm = Date.now() + 5000; say('hint.cost', null, 4800); A.play('coach'); return; }   // first request on this level: say it costs the 2nd star, tap again to use it (no dialog)
     save.hu[level.id] = 1; hints++; lastHint = W.key(st) + '|' + moves; persist(); track('hint', { level: level.id, n: hints });
     A.play('hint'); const hb = $('h-hint'); hb.classList.remove('glow'); void hb.offsetWidth; hb.classList.add('glow'); clearHl();
-    if (n && run.length && msg.startsWith('hint.rt')) scene.pulseHint(n === 3 ? 'rotate-right' : dirL ? 'rotate-left' : 'rotate-right');
+    if (n) scene.pulseHint(n === 3 ? 'rotate-right' : dirL ? 'rotate-left' : 'rotate-right');
     if (tile) hl(tile, 7000);
-    const sl = acts[i] && acts[i].t === 'slide' ? level.sliders.find((s) => s.id === acts[i].id) : null;
-    say(msg, sl ? { n: acts[i].pos + 1, m: sl.positions.length } : { x: cnt === 2 ? t('hint.twice') : '' }, 6500);
+    const sl = acts[i] && acts[i].t === 'slide' ? level.sliders.find((s) => s.id === acts[i].id) : null, xs = cnt === 2 ? t('hint.twice') : '';
+    let text = t(msg, sl ? { n: acts[i].pos + 1, m: sl.positions.length, d: sdir ? t('dir.' + sdir) : '' } : { x: xs });
+    if (n && !msg.startsWith('hint.rt')) text += ' ' + t(n === 3 || !dirL ? 'hint.t.r' : 'hint.t.l', { x: xs });   // lever / portal / slider after a world turn: name the turn too
+    UI.toast(text, 7000);
     hud();
   }
 
   // ---------- daily level, sharing, photo mode ----------
-  const dayNo = () => Math.floor(Date.now() / 864e5) - 20778;           // day 1 = launch day 2026-11-22 (UTC): same level for everyone
-  // No repeats: every cycle of (levels - 2) days plays each level once, in an order shuffled by the cycle number; the start camera varies by day.
+  const dayNo = () => { const n = new Date(); return Math.floor(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()) / 864e5) - 20778; };   // day 1 = launch day 2026-11-22, by the player's local calendar day (also used by the ?d= share link)
+  // No repeats: every cycle of (levels - DAILY_FROM) days plays each level once, in an order shuffled by the cycle number; the start camera varies by day.
+  // The pool is a fixed range of all levels from DAILY_FROM on: it never depends on ownership or the store (a locked pick shows the offer instead).
   function dailyPick(d) {
-    d = d || dayNo(); const pool = freeCount() - 2, cyc = Math.floor((d - 1) / pool), idx = Array.from({ length: pool }, (_, k) => k);
+    d = d || dayNo(); const pool = Math.max(1, LV.length - DAILY_FROM), cyc = Math.floor((d - 1) / pool), idx = Array.from({ length: pool }, (_, k) => k);
     let x = (cyc + 1) * 2654435761 >>> 0; const rnd = () => { x = (x + 0x6D2B79F5) >>> 0; let z = x; z = Math.imul(z ^ (z >>> 15), z | 1); z ^= z + Math.imul(z ^ (z >>> 7), z | 61); return ((z ^ (z >>> 14)) >>> 0) / 4294967296; };
     for (let k = pool - 1; k > 0; k--) { const j = Math.floor(rnd() * (k + 1)); [idx[k], idx[j]] = [idx[j], idx[k]]; }
-    return { i: 2 + idx[(d - 1) % pool], cam: d % 4, day: d };
+    return { i: Math.min(LV.length - 1, DAILY_FROM + idx[(d - 1) % pool]), cam: d % 4, day: d };
   }
-  const solvedN = () => Object.keys(save.solved).length, DAILY_AT = 8;                 // the daily opens after 5 solved levels
+  const solvedN = () => Object.keys(save.solved).length, DAILY_AT = 8, DAILY_FROM = 8;   // the daily opens after 8 solved levels; its pool is levels 9..last
   const dailyDone = () => !!(save.daily && save.daily.day === dayNo());
   function dailyLabel() {
     const b = $('b-daily'); if (!b) return; const open = solvedN() >= DAILY_AT; $('b-daily').disabled = !open; $('b-daily').style.opacity = open ? '' : '.5';
@@ -313,13 +329,13 @@
   // ---------- level start ----------
   function startLevel(i, opts) {
     if (lockedLv(LV[i])) { showOffer(); return; }
-    ghostStop(); photo(false); daily = !!(opts && opts.daily); dailyDay = daily ? opts.day || dayNo() : 0; li = i; level = daily ? Object.assign({}, LV[i], { cam: opts.cam || 0 }) : LV[i]; st = W.initial(level); trail = ''; undo = []; moves = 0; turns = 0; hints = 0; walking = false; won = false; bgOn = false; clearHl(); hideBar(); t0 = Date.now();
+    ghostStop(); photo(false); daily = !!(opts && opts.daily); dailyDay = daily ? opts.day || dayNo() : 0; li = i; level = daily ? Object.assign({}, LV[i], { cam: opts.cam || 0 }) : LV[i]; st = W.initial(level); trail = ''; undo = []; moves = 0; turns = 0; hints = 0; walkId++; walking = false; walkPre = null; hintArm = 0; won = false; bgOn = false; clearHl(); hideBar(); t0 = Date.now();
     const c = daily ? null : save.curs[level.id]; if (c && c.id === level.id && c.st && LV[i].tiles.some((x) => x.id === c.st.tile)) { st = c.st; undo = c.undo || []; moves = c.moves || 0; turns = c.turns || 0; hints = c.hints || 0; trail = c.trail || ''; }
     $('win').hidden = true; $('toast').classList.remove('is-on');
     scene.setLevel(level); scene.setState(st, false); scene.setCam(st.cam, false); seamN = seams().length; scene.setInputEnabled(true);
     bumpIdle(); track('level_start', { level: level.id, daily, resumed: moves + turns > 0 });
-    UI.go('play'); hud(); coachInit(); if (moves + turns > 0) setTimeout(checkDead, 400);
-    trans();
+    A.music && A.music.setChapter((level.ch || 1) - 1); UI.go('play'); hud(); coachInit(); if (moves + turns > 0) setTimeout(checkDead, 400);
+    trans(); if (noGL) UI.toast(t('gl.none'), 600000);
   }
   // Level card: ink fades in with the level number and chapter, the level is already swapped underneath, then it clears. Skipped for the very first start.
   let transT = 0, booted = false;
@@ -398,7 +414,7 @@
   $('win-photo').addEventListener('click', () => photo(true));
   document.addEventListener('pointerdown', (e) => { if ($('app').classList.contains('photo')) { e.stopPropagation(); e.preventDefault(); photo(false); } }, true);
   document.addEventListener('click', (e) => { if (Date.now() - photoOff < 500) { e.stopPropagation(); e.preventDefault(); photoOff = 0; } }, true);
-  $('h-back').addEventListener('click', () => { UI.Coach.hide(); hideBar(); saveCur(); UI.go('levels'); });
+  $('h-back').addEventListener('click', () => { UI.Coach.hide(); hideBar(); abortWalk(); saveCur(); UI.go('levels'); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && playing()) saveCur(); });
   $('h-rotl').addEventListener('click', () => rotate(1)); $('h-rotr').addEventListener('click', () => rotate(-1)); // same sense as the scene's ArrowLeft (+1)
   $('h-undo').addEventListener('click', doUndo); $('h-hint').addEventListener('click', hint);
@@ -414,6 +430,7 @@
   $('win-replay').addEventListener('click', () => { restart(false); coachInit(); });
   document.addEventListener('keydown', (e) => {
     if (e.metaKey || e.altKey) return;
+    if (e.key === 'Escape' && (!$('offer').hidden || !$('modal').hidden)) { $('offer').hidden = true; $('modal').hidden = true; e.preventDefault(); return; }   // close dialogs first, never navigate behind them
     if (!playing()) { if (e.key === 'Escape' && UI.cur() !== 'menu' && UI.cur() !== 'splash') { $('modal').hidden = true; UI.go('menu'); } return; }
     const k = e.key.toLowerCase();
     if (k === 'a') rotate(1); else if (k === 'd') rotate(-1); // arrow keys are handled by the scene itself
@@ -421,9 +438,9 @@
     else if (k === 'escape') $('h-back').click(); else return;
     e.preventDefault();
   });
-  UI.on('*', (name) => { const wide = innerWidth / innerHeight >= 1.25; scene.setLift(name === 'menu' && !wide ? 0.2 : 0, name === 'menu' && wide ? -0.16 : 0); });
-  addEventListener('resize', () => { const m = UI.cur() === 'menu', wide = innerWidth / innerHeight >= 1.25; scene.setLift(m && !wide ? 0.2 : 0, m && wide ? -0.16 : 0); });
-  UI.on('menu', () => { refreshText(); backdrop(); }); UI.on('levels', () => { UI.buildLevels(save, startLevel); backdrop(); });
+  UI.on('*', (name) => { if (noGL) return; const wide = innerWidth / innerHeight >= 1.25; scene.setLift(name === 'menu' && !wide ? 0.2 : 0, name === 'menu' && wide ? -0.16 : 0); });
+  addEventListener('resize', () => { if (noGL) return; const m = UI.cur() === 'menu', wide = innerWidth / innerHeight >= 1.25; scene.setLift(m && !wide ? 0.2 : 0, m && wide ? -0.16 : 0); });
+  UI.on('menu', () => { refreshText(); backdrop(); A.music && A.music.setChapter(-1); }); UI.on('levels', () => { UI.buildLevels(save, startLevel); backdrop(); });
   UI.on('settings', () => { applySettings(); $('set-foot').textContent = t('set.foot', { n: LV.length }); backdrop(); }); UI.on('howto', () => { UI.buildHow(); backdrop(); });
   UI.on('play', () => { document.activeElement && document.activeElement.blur && document.activeElement.blur(); });
   root.addEventListener('resize', () => scene.resize());
@@ -447,7 +464,7 @@
     if (left || UI.cur() !== 'splash' || /hold/.test(location.hash)) return; left = true;
     track('app_open', { first: !returning });
     const dl = /[?&]d=(\d+)/.exec(location.search), dn = dl ? +dl[1] : 0;
-    if (dn >= 1 && dn <= dayNo() && solvedN() >= DAILY_AT) { const p = dailyPick(dn); startLevel(p.i, { daily: true, cam: p.cam, day: p.day }); }  // shared link: the same daily level
+    if (dn >= 1 && dn <= dayNo() + 1 && solvedN() >= DAILY_AT) { const p = dailyPick(dn); if (lockedLv(LV[p.i])) { UI.go('menu'); showOffer(); } else startLevel(p.i, { daily: true, cam: p.cam, day: p.day }); }  // shared link: the same daily level
     else UI.go('menu');
   }
   const ready = (document.fonts && document.fonts.ready) || Promise.resolve();
